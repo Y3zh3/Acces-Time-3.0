@@ -15,7 +15,7 @@ function isWithinWorkingHours(workStart: string | null, workEnd: string | null):
 
 /**
  * Verifica si la entrada está dentro de la ventana permitida (Personal interno)
- * Permite ingresar desde 10 minutos ANTES de la hora de inicio hasta la hora de fin del horario laboral
+ * Permite ingresar desde 60 minutos ANTES de la hora de inicio hasta 60 minutos DESPUÉS de la hora de fin del horario laboral
  */
 function isWithinEmployeeEntryWindow(workStart: string | null, workEnd: string | null): { allowed: boolean; windowStart: string; windowEnd: string } {
   if (!workStart || !workEnd) {
@@ -32,9 +32,9 @@ function isWithinEmployeeEntryWindow(workStart: string | null, workEnd: string |
   const [endHour, endMinute] = workEnd.split(':').map(Number);
   const endMinutes = endHour * 60 + endMinute;
   
-  // Calcular ventana: 10 minutos antes de hora inicio hasta hora de fin
-  const windowStartMinutes = startMinutes - 10;
-  const windowEndMinutes = endMinutes;
+  // Calcular ventana: 60 minutos antes de hora inicio hasta 60 minutos después de hora de fin (MÁS FLEXIBLE)
+  const windowStartMinutes = startMinutes - 60;
+  const windowEndMinutes = endMinutes + 60;
   
   // Calcular horas para retornar
   const wsHour = Math.floor(windowStartMinutes / 60);
@@ -53,7 +53,7 @@ function isWithinEmployeeEntryWindow(workStart: string | null, workEnd: string |
 
 /**
  * Verifica si la salida está dentro de la ventana permitida (Personal interno)
- * Permite salir desde la hora programada hasta 30 minutos DESPUÉS
+ * Permite salir desde 60 minutos ANTES de la hora programada hasta 120 minutos DESPUÉS (MÁS FLEXIBLE)
  */
 function isWithinEmployeeExitWindow(workEnd: string | null): { allowed: boolean; windowStart: string; windowEnd: string } {
   if (!workEnd) {
@@ -67,9 +67,9 @@ function isWithinEmployeeExitWindow(workEnd: string | null): { allowed: boolean;
   const [endHour, endMinute] = workEnd.split(':').map(Number);
   const endMinutes = endHour * 60 + endMinute;
   
-  // Calcular ventana: desde hora programada hasta 30 minutos después
-  const windowStartMinutes = endMinutes;
-  const windowEndMinutes = endMinutes + 30;
+  // Calcular ventana: desde 60 minutos antes hasta 120 minutos después (MÁS FLEXIBLE)
+  const windowStartMinutes = endMinutes - 60;
+  const windowEndMinutes = endMinutes + 120;
   
   // Calcular horas para retornar
   const wsHour = Math.floor(windowStartMinutes / 60);
@@ -88,7 +88,7 @@ function isWithinEmployeeExitWindow(workEnd: string | null): { allowed: boolean;
 
 /**
  * Verifica si la entrada está dentro de la ventana permitida (Transporte/Proveedores)
- * Permite ingresar desde la hora programada hasta 30 minutos después
+ * Permite ingresar desde 60 minutos ANTES de la hora programada hasta 120 minutos DESPUÉS (MÁS FLEXIBLE)
  * @param entryDateTime - Fecha y hora completa programada de entrada
  * @returns Objeto con validación y ventanas de tiempo
  */
@@ -105,9 +105,9 @@ function isWithinProviderEntryWindow(entryDateTime: Date | null): { allowed: boo
   const programmedMinute = entryDateTime.getMinutes();
   const programmedMinutes = programmedHour * 60 + programmedMinute;
   
-  // Calcular ventana: desde hora programada hasta 30 minutos después
-  const windowStartMinutes = programmedMinutes;
-  const windowEndMinutes = programmedMinutes + 30;
+  // Calcular ventana: desde 60 minutos antes hasta 120 minutos después (MÁS FLEXIBLE)
+  const windowStartMinutes = programmedMinutes - 60;
+  const windowEndMinutes = programmedMinutes + 120;
   
   // Calcular horas para retornar
   const wsHour = Math.floor(windowStartMinutes / 60);
@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json(
                   { 
                     error: 'Acceso denegado',
-                    message: `No puede ingresar fuera de su horario laboral. Horario: ${workStart} - ${workEnd} (puede ingresar desde 10 minutos antes de su hora de inicio). Solicite un pase temporal si necesita acceso fuera de este horario.`,
+                    message: `No puede ingresar fuera de su horario laboral. Horario: ${workStart} - ${workEnd} (puede ingresar desde 1 hora antes de su hora de inicio hasta 1 hora después de su hora de fin). Solicite un pase temporal si necesita acceso fuera de este horario.`,
                     workStartTime: workStart,
                     workEndTime: workEnd,
                     allowedWindow: `${entryValidation.windowStart} - ${entryValidation.windowEnd}`
@@ -286,7 +286,7 @@ export async function POST(request: NextRequest) {
               return NextResponse.json(
                 { 
                   error: 'Acceso denegado',
-                  message: `No puede ingresar fuera de su ventana de entrada. Horario programado: ${programmedTime} (tolerancia hasta 30 minutos después).`,
+                  message: `No puede ingresar fuera de su ventana de entrada. Horario programado: ${programmedTime} (tolerancia desde 1 hora antes hasta 2 horas después).`,
                   programmedTime: programmedTime,
                   allowedWindow: `${entryValidation.windowStart} - ${entryValidation.windowEnd}`
                 },
@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
               return NextResponse.json(
                 { 
                   error: 'Acceso denegado',
-                  message: `No puede ingresar fuera de su ventana de entrada. Horario programado: ${programmedTime} (tolerancia hasta 30 minutos después).`,
+                  message: `No puede ingresar fuera de su ventana de entrada. Horario programado: ${programmedTime} (tolerancia desde 1 hora antes hasta 2 horas después).`,
                   programmedTime: programmedTime,
                   allowedWindow: `${entryValidation.windowStart} - ${entryValidation.windowEnd}`
                 },
