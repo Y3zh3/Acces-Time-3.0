@@ -1,57 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { writeFile, mkdir, unlink } from 'fs/promises';
-import path from 'path';
-import fs from 'fs';
 
 /**
- * Eliminar foto del sistema de archivos
+ * Eliminar foto
  */
 async function deletePhoto(photoPath: string): Promise<void> {
-  try {
-    if (!photoPath) return;
-    const fullPath = path.join(process.cwd(), 'public', photoPath);
-    if (fs.existsSync(fullPath)) {
-      await unlink(fullPath);
-      console.log('🗑️ Foto antigua eliminada:', photoPath);
-    }
-  } catch (error) {
-    console.error('Error eliminando foto:', error);
-  }
+  // En Vercel se guarda como base64, no hay sistema de archivos a borrar
 }
 
 /**
- * Guardar foto base64 en el sistema de archivos
+ * Guardar foto base64
  */
 async function savePhoto(base64Data: string, dni: string): Promise<string> {
-  try {
-    // Extraer el tipo de imagen y los datos
-    const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
-    if (!matches) {
-      throw new Error('Formato de imagen inválido');
-    }
-
-    const imageType = matches[1];
-    const imageData = matches[2];
-    const buffer = Buffer.from(imageData, 'base64');
-
-    // Crear directorio si no existe
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'provider-personnel');
-    await mkdir(uploadDir, { recursive: true });
-
-    // Nombre del archivo
-    const filename = `${dni}_${Date.now()}.${imageType}`;
-    const filepath = path.join(uploadDir, filename);
-
-    // Guardar archivo
-    await writeFile(filepath, buffer);
-
-    // Retornar la ruta relativa
-    return `/uploads/provider-personnel/${filename}`;
-  } catch (error) {
-    console.error('Error guardando foto:', error);
-    throw error;
-  }
+  return base64Data;
 }
 
 /**
