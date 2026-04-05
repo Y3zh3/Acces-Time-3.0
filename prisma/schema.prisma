@@ -1,183 +1,156 @@
-// Esquema de base de datos para AccessTime - Sistema Biométrico
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-// Enumeración de Roles del Sistema
-enum UserRole {
-  ADMINISTRADOR    // Acceso completo al sistema
-  SUPERVISOR       // Gestión de personal y reportes
-  SEGURIDAD        // Control de accesos
-}
-
-// Usuarios del Sistema (Supervisores y Seguridad)
 model SystemUser {
-  id              Int       @id @default(autoincrement()) @map("id")
-  username        String    @unique @map("usuario")
-  password        String    @map("contrasena")
-  fullName        String    @map("nombre_completo")
-  role            String    @map("rol")
-  email           String?   @map("email")
-  status          String    @default("Activo") @map("estado")
-  createdAt       DateTime  @default(now()) @map("creado_en")
-  updatedAt       DateTime  @updatedAt @map("actualizado_en")
-  
+  id        Int      @id @default(autoincrement()) @map("id")
+  username  String   @unique @map("usuario")
+  password  String   @map("contrasena")
+  fullName  String   @map("nombre_completo")
+  role      String   @map("rol")
+  email     String?  @map("email")
+  status    String   @default("Activo") @map("estado")
+  createdAt DateTime @default(now()) @map("creado_en")
+  updatedAt DateTime @updatedAt @map("actualizado_en")
+
   @@map("usuarios_sistema")
 }
 
-// Tabla de Empleados con credenciales
 model Employee {
-  id              Int       @id @default(autoincrement()) @map("id")
-  fullName        String    @map("nombre_completo")
-  dni             String    @unique @map("dni")
-  role            String    @default("EMPLEADO") @map("rol") // Tipo de personal: EMPLEADO, etc.
-  position        String?   @map("cargo") // Cargo específico (Asistente, Operario, etc.)
-  department      String    @map("departamento")
-  location        String?   @map("sede") // Sede de trabajo (Lima, Ves, SJL)
-  contractExpiry  DateTime? @map("vencimiento_contrato") // Fecha de vencimiento del contrato
-  email           String?   @map("email")
-  photoPath       String?   @map("ruta_foto")
-  status          String    @default("Activo") @map("estado")
-  hasBiometric    Boolean   @default(false) @map("tiene_biometrico")
-  workStartTime   String?   @default("08:00") @map("hora_entrada") // Hora de inicio laboral (HH:mm)
-  workEndTime     String?   @default("17:45") @map("hora_salida") // Hora de fin laboral (HH:mm)
-  entryDateTime   DateTime? @map("fecha_hora_entrada") // Última entrada registrada
-  exitDateTime    DateTime? @map("fecha_hora_salida") // Última salida registrada
-  createdAt       DateTime  @default(now()) @map("creado_en")
-  updatedAt       DateTime  @updatedAt @map("actualizado_en")
-  
-  // Relaciones
-  biometric       FaceBiometric?
-  accessLogs      AccessLog[]
-  issuedPasses    TemporaryPass[] @relation("IssuedPasses")
-  
+  id             Int             @id @default(autoincrement()) @map("id")
+  fullName       String          @map("nombre_completo")
+  dni            String          @unique @map("dni")
+  role           String          @default("EMPLEADO") @map("rol")
+  position       String?         @map("cargo")
+  department     String          @map("departamento")
+  location       String?         @map("sede")
+  contractExpiry DateTime?       @map("vencimiento_contrato")
+  email          String?         @map("email")
+  photoPath      String?         @map("ruta_foto")
+  status         String          @default("Activo") @map("estado")
+  hasBiometric   Boolean         @default(false) @map("tiene_biometrico")
+  workStartTime  String?         @default("08:00") @map("hora_entrada")
+  workEndTime    String?         @default("17:45") @map("hora_salida")
+  entryDateTime  DateTime?       @map("fecha_hora_entrada")
+  exitDateTime   DateTime?       @map("fecha_hora_salida")
+  createdAt      DateTime        @default(now()) @map("creado_en")
+  updatedAt      DateTime        @updatedAt @map("actualizado_en")
+  biometric      FaceBiometric?
+  issuedPasses   TemporaryPass[] @relation("IssuedPasses")
+  accessLogs     AccessLog[]
+
   @@index([dni])
   @@index([status])
   @@map("empleados")
 }
 
-// Tabla de Datos Biométricos Faciales
 model FaceBiometric {
-  id                    Int       @id @default(autoincrement()) @map("id")
-  employeeId            Int?      @unique @map("empleado_id")
-  transportPersonnelId  Int?      @unique @map("personal_transporte_id")
-  providerPersonnelId   Int?      @unique @map("personal_proveedor_id")
-  descriptor            String    @db.Text @map("descriptor") // JSON array de 128 valores
-  isActive              Boolean   @default(true) @map("activo")
-  createdAt             DateTime  @default(now()) @map("creado_en")
-  updatedAt             DateTime  @updatedAt @map("actualizado_en")
-  
-  // Relaciones
-  employee              Employee?           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  transportPersonnel    TransportPersonnel? @relation(fields: [transportPersonnelId], references: [id], onDelete: Cascade)
-  providerPersonnel     ProviderPersonnel?  @relation(fields: [providerPersonnelId], references: [id], onDelete: Cascade)
-  
+  id                   Int                 @id @default(autoincrement()) @map("id")
+  employeeId           Int?                @unique @map("empleado_id")
+  transportPersonnelId Int?                @unique @map("personal_transporte_id")
+  providerPersonnelId  Int?                @unique @map("personal_proveedor_id")
+  descriptor           String              @map("descriptor")
+  isActive             Boolean             @default(true) @map("activo")
+  createdAt            DateTime            @default(now()) @map("creado_en")
+  updatedAt            DateTime            @updatedAt @map("actualizado_en")
+  employee             Employee?           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  providerPersonnel    ProviderPersonnel?  @relation(fields: [providerPersonnelId], references: [id], onDelete: Cascade)
+  transportPersonnel   TransportPersonnel? @relation(fields: [transportPersonnelId], references: [id], onDelete: Cascade)
+
   @@index([isActive])
   @@map("biometricos_faciales")
 }
 
-// Tabla de Personal de Transporte (proveedores externos)
 model TransportPersonnel {
-  id              Int       @id @default(autoincrement()) @map("id")
-  fullName        String    @map("nombre_completo")
-  dni             String    @unique @map("dni")
-  company         String    @map("empresa")
-  vehicle         String?   @map("vehiculo")
-  licensePlate        String?   @map("matricula")
-  photoPath           String?   @map("ruta_foto")
-  status              String    @default("Activo") @map("estado")
-  workStartTime       String?   @default("08:00") @map("hora_entrada") // Hora de inicio laboral (HH:mm)
-  workEndTime         String?   @default("17:45") @map("hora_salida") // Hora de fin laboral (HH:mm)
-  entryDateTime       DateTime? @map("fecha_hora_entrada_programada") // Fecha y hora de entrada PROGRAMADA
-  exitDateTime        DateTime? @map("fecha_hora_salida_programada") // Fecha y hora de salida PROGRAMADA
-  actualEntryDateTime DateTime? @map("fecha_hora_entrada_real") // Fecha y hora de entrada REAL
-  actualExitDateTime  DateTime? @map("fecha_hora_salida_real") // Fecha y hora de salida REAL
-  createdAt           DateTime  @default(now()) @map("creado_en")
-  updatedAt           DateTime  @updatedAt @map("actualizado_en")
-  
-  // Relaciones
-  biometric       FaceBiometric?
-  accessLogs      AccessLog[]
-  
+  id                  Int            @id @default(autoincrement()) @map("id")
+  fullName            String         @map("nombre_completo")
+  dni                 String         @unique @map("dni")
+  company             String         @map("empresa")
+  vehicle             String?        @map("vehiculo")
+  licensePlate        String?        @map("matricula")
+  photoPath           String?        @map("ruta_foto")
+  status              String         @default("Activo") @map("estado")
+  workStartTime       String?        @default("08:00") @map("hora_entrada")
+  workEndTime         String?        @default("17:45") @map("hora_salida")
+  entryDateTime       DateTime?      @map("fecha_hora_entrada_programada")
+  exitDateTime        DateTime?      @map("fecha_hora_salida_programada")
+  actualEntryDateTime DateTime?      @map("fecha_hora_entrada_real")
+  actualExitDateTime  DateTime?      @map("fecha_hora_salida_real")
+  createdAt           DateTime       @default(now()) @map("creado_en")
+  updatedAt           DateTime       @updatedAt @map("actualizado_en")
+  biometric           FaceBiometric?
+  accessLogs          AccessLog[]
+
   @@index([dni])
   @@index([exitDateTime])
   @@map("personal_transporte")
 }
 
-// Tabla de Empresas Proveedoras
 model ProviderCompany {
-  id                  Int       @id @default(autoincrement()) @map("id")
-  companyName         String    @unique @map("nombre_empresa")
-  ruc                 String?   @map("ruc")
-  supplyType          String?   @map("tipo_suministro")
-  commercialContact   String?   @map("contacto_comercial")
-  phone               String?   @map("telefono")
-  address             String?   @map("direccion")
-  status              String    @default("Activo") @map("estado")
-  createdAt           DateTime  @default(now()) @map("creado_en")
-  updatedAt           DateTime  @updatedAt @map("actualizado_en")
-  
+  id                Int      @id @default(autoincrement()) @map("id")
+  companyName       String   @unique @map("nombre_empresa")
+  ruc               String?  @map("ruc")
+  supplyType        String?  @map("tipo_suministro")
+  commercialContact String?  @map("contacto_comercial")
+  phone             String?  @map("telefono")
+  address           String?  @map("direccion")
+  status            String   @default("Activo") @map("estado")
+  createdAt         DateTime @default(now()) @map("creado_en")
+  updatedAt         DateTime @updatedAt @map("actualizado_en")
+
   @@index([companyName])
   @@map("empresas_proveedoras")
 }
 
-// Tabla de Personal de Proveedores (empresas de suministros)
 model ProviderPersonnel {
-  id              Int       @id @default(autoincrement()) @map("id")
-  fullName        String    @map("nombre_completo")
-  dni             String    @unique @map("dni")
-  company         String    @map("empresa")
-  position        String?   @map("cargo")
-  phone               String?   @map("telefono")
-  photoPath           String?   @map("ruta_foto")
-  status              String    @default("Activo") @map("estado")
-  workStartTime       String?   @default("08:00") @map("hora_entrada") // Hora de inicio laboral (HH:mm)
-  workEndTime         String?   @default("17:45") @map("hora_salida") // Hora de fin laboral (HH:mm)
-  entryDateTime       DateTime? @map("fecha_hora_entrada_programada") // Fecha y hora de entrada PROGRAMADA
-  exitDateTime        DateTime? @map("fecha_hora_salida_programada") // Fecha y hora de salida PROGRAMADA
-  actualEntryDateTime DateTime? @map("fecha_hora_entrada_real") // Fecha y hora de entrada REAL
-  actualExitDateTime  DateTime? @map("fecha_hora_salida_real") // Fecha y hora de salida REAL
-  createdAt           DateTime  @default(now()) @map("creado_en")
-  updatedAt           DateTime  @updatedAt @map("actualizado_en")
-  
-  // Relaciones
-  biometric       FaceBiometric?
-  accessLogs      AccessLog[]
-  
+  id                  Int            @id @default(autoincrement()) @map("id")
+  fullName            String         @map("nombre_completo")
+  dni                 String         @unique @map("dni")
+  company             String         @map("empresa")
+  position            String?        @map("cargo")
+  phone               String?        @map("telefono")
+  photoPath           String?        @map("ruta_foto")
+  status              String         @default("Activo") @map("estado")
+  workStartTime       String?        @default("08:00") @map("hora_entrada")
+  workEndTime         String?        @default("17:45") @map("hora_salida")
+  entryDateTime       DateTime?      @map("fecha_hora_entrada_programada")
+  exitDateTime        DateTime?      @map("fecha_hora_salida_programada")
+  actualEntryDateTime DateTime?      @map("fecha_hora_entrada_real")
+  actualExitDateTime  DateTime?      @map("fecha_hora_salida_real")
+  createdAt           DateTime       @default(now()) @map("creado_en")
+  updatedAt           DateTime       @updatedAt @map("actualizado_en")
+  biometric           FaceBiometric?
+  accessLogs          AccessLog[]
+
   @@index([dni])
   @@index([exitDateTime])
   @@map("personal_proveedores")
 }
 
-// Tabla de Logs de Acceso
 model AccessLog {
-  id              Int       @id @default(autoincrement()) @map("id")
-  userName        String    @map("nombre_usuario")
-  userDni         String?   @map("dni_usuario")
-  role            String    @map("rol")
-  status          String    @map("estado") // Aprobado, Denegado, Fuera de Horario
-  zone            String    @map("zona")
-  type            String    @map("tipo") // success, warning, critical
-  entryTime       DateTime  @default(now()) @map("hora_entrada") // Hora de entrada
-  exitTime        DateTime? @map("hora_salida") // Hora de salida (null hasta que salga)
-  
-  // Relaciones opcionales
-  employeeId      Int? @map("empleado_id")
-  transportId     Int? @map("transporte_id")
-  providerId      Int? @map("proveedor_id")
-  
-  employee        Employee?           @relation(fields: [employeeId], references: [id], onDelete: SetNull)
-  transport       TransportPersonnel? @relation(fields: [transportId], references: [id], onDelete: SetNull)
-  provider        ProviderPersonnel?  @relation(fields: [providerId], references: [id], onDelete: SetNull)
-  
+  id          Int                 @id @default(autoincrement()) @map("id")
+  userName    String              @map("nombre_usuario")
+  userDni     String?             @map("dni_usuario")
+  role        String              @map("rol")
+  status      String              @map("estado")
+  zone        String              @map("zona")
+  type        String              @map("tipo")
+  entryTime   DateTime            @default(now()) @map("hora_entrada")
+  exitTime    DateTime?           @map("hora_salida")
+  employeeId  Int?                @map("empleado_id")
+  transportId Int?                @map("transporte_id")
+  providerId  Int?                @map("proveedor_id")
+  employee    Employee?           @relation(fields: [employeeId], references: [id])
+  provider    ProviderPersonnel?  @relation(fields: [providerId], references: [id])
+  transport   TransportPersonnel? @relation(fields: [transportId], references: [id])
+
   @@index([entryTime])
   @@index([userDni])
   @@index([status])
@@ -185,24 +158,27 @@ model AccessLog {
   @@map("registros_acceso")
 }
 
-// Tabla de Pases Temporales
 model TemporaryPass {
-  id              Int       @id @default(autoincrement()) @map("id")
-  fullName        String    @map("nombre_completo")
-  dni             String    @map("dni")
-  company         String?   @map("empresa")
-  reason          String    @map("motivo")
-  authorizedBy    String    @map("autorizado_por") // Nombre del supervisor
-  issuedById      Int?      @map("emitido_por_id") // ID del empleado que emitió el pase
-  validFrom       DateTime  @map("valido_desde")
-  validUntil      DateTime  @map("valido_hasta")
-  status          String    @default("Activo") @map("estado")
-  createdAt       DateTime  @default(now()) @map("creado_en")
-  
-  // Relación con el empleado que emitió el pase
-  issuedBy        Employee? @relation("IssuedPasses", fields: [issuedById], references: [id], onDelete: SetNull)
-  
+  id           Int       @id @default(autoincrement()) @map("id")
+  fullName     String    @map("nombre_completo")
+  dni          String    @map("dni")
+  company      String?   @map("empresa")
+  reason       String    @map("motivo")
+  authorizedBy String    @map("autorizado_por")
+  issuedById   Int?      @map("emitido_por_id")
+  validFrom    DateTime  @map("valido_desde")
+  validUntil   DateTime  @map("valido_hasta")
+  status       String    @default("Activo") @map("estado")
+  createdAt    DateTime  @default(now()) @map("creado_en")
+  issuedBy     Employee? @relation("IssuedPasses", fields: [issuedById], references: [id])
+
   @@index([validFrom, validUntil])
   @@index([status])
   @@map("pases_temporales")
+}
+
+enum UserRole {
+  ADMINISTRADOR
+  SUPERVISOR
+  SEGURIDAD
 }
