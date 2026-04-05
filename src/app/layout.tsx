@@ -1,7 +1,7 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthGuard } from '@/components/auth-guard';
@@ -28,6 +28,9 @@ export default function RootLayout({
           <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
+              <header className="flex h-14 items-center px-4 md:hidden border-b bg-white">
+                <SidebarTrigger />
+              </header>
               <main className="flex-1 overflow-y-auto bg-background p-4 md:p-8">
                 {children}
               </main>
