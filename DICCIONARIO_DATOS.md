@@ -1,304 +1,197 @@
-# Diccionario de Datos - AccessTime Sistema Biométrico
+# DICCIONARIO DE DATOS — AccessTime 3.0
 
 ## Índice
-
-1. [Enumeraciones](#enumeraciones)
-2. [Tablas del Sistema](#tablas-del-sistema)
-3. [Diagrama de Relaciones](#diagrama-de-relaciones)
-
----
-
-## Enumeraciones
-
-### UserRole
-
-Roles disponibles en el sistema para usuarios administrativos.
-
-| Valor         | Descripción                    |
-| ------------- | ------------------------------ |
-| ADMINISTRADOR | Acceso completo al sistema     |
-| SUPERVISOR    | Gestión de personal y reportes |
-| SEGURIDAD     | Control de accesos             |
+1. <a>Tabla 1 - usuarios_sistema</a>
+2. <a>Tabla 2 - empleados</a>
+3. <a>Tabla 3 - biometricos_faciales</a>
+4. <a>Tabla 4 - personal_transporte</a>
+5. <a>Tabla 5 - empresas_proveedoras</a>
+6. <a>Tabla 6 - personal_proveedores</a>
+7. <a>Tabla 7 - registros_acceso</a>
+8. <a>Tabla 8 - pases_temporales</a>
 
 ---
 
-## Tablas del Sistema
+## Leyenda
+- **M** = Obligatorio (Mandatory)
+- **O** = Opcional
+- **AN** = Alfanumérico
+- **N** = Numérico
+- **PK** = Clave Primaria
+- **FK** = Clave Foránea
+- **AI** = Auto-incremental
 
-### 1. usuarios_sistema (SystemUser)
+---
+
+## TABLA 1: `usuarios_sistema` — Usuarios del Sistema
 
 **Descripción:** Usuarios administrativos del sistema (supervisores y personal de seguridad).
 
-**Nombre en Base de Datos:** `usuarios_sistema`
-
-| Campo           | Tipo         | Nulo | Clave  | Default  | Descripción                          |
-| --------------- | ------------ | ---- | ------ | -------- | ------------------------------------ |
-| id              | INT          | NO   | PK, AI | -        | Identificador único del usuario      |
-| usuario         | VARCHAR(50)  | NO   | UNIQUE | -        | Nombre de usuario para login         |
-| contrasena      | VARCHAR(255) | NO   | -      | -        | Contraseña encriptada                |
-| nombre_completo | VARCHAR(255) | NO   | -      | -        | Nombre completo del usuario          |
-| rol             | VARCHAR(50)  | NO   | -      | -        | Rol del usuario en el sistema        |
-| email           | VARCHAR(255) | SÍ   | -      | NULL     | Correo electrónico                   |
-| estado          | VARCHAR(50)  | NO   | -      | "Activo" | Estado del usuario (Activo/Inactivo) |
-| creado_en       | DATETIME     | NO   | -      | NOW()    | Fecha y hora de creación             |
-| actualizado_en  | DATETIME     | NO   | -      | NOW()    | Fecha y hora de última actualización |
-
-**Índices:**
-
-- PRIMARY KEY (id)
-- UNIQUE (usuario)
+| CAMPO | NOMBRE | OBLIGATORIEDAD | TIPO | LONGITUD | FORMATO / OBSERVACIONES | CAMPO API / JSON |
+|-------|--------|:--------------:|------|:--------:|-------------------------|-----------------|
+| id | Identificador único | M | N | - | Auto-incremental, PK | `usuario.id` |
+| usuario | Nombre de usuario | M | AN | 50 | Único, usado para login | `usuario.usuario` |
+| contrasena | Contraseña | M | AN | 255 | Almacenada encriptada | `usuario.contrasena` |
+| nombre_completo | Nombre completo | M | AN | 255 | Nombre y apellidos del usuario | `usuario.nombre_completo` |
+| rol | Rol del usuario | M | AN | 50 | ADMINISTRADOR / SUPERVISOR / SEGURIDAD | `usuario.rol` |
+| email | Correo electrónico | O | AN | 255 | Formato: usuario@dominio.com | `usuario.email` |
+| estado | Estado del usuario | M | AN | 50 | "Activo" / "Inactivo". Default: "Activo" | `usuario.estado` |
+| creado_en | Fecha de creación | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `usuario.creado_en` |
+| actualizado_en | Fecha de actualización | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `usuario.actualizado_en` |
 
 ---
 
-### 2. empleados (Employee)
+## TABLA 2: `empleados` — Empleados
 
 **Descripción:** Empleados de la organización con sus credenciales y datos laborales.
 
-**Nombre en Base de Datos:** `empleados`
-
-| Campo                | Tipo         | Nulo | Clave       | Default    | Descripción                                  |
-| -------------------- | ------------ | ---- | ----------- | ---------- | -------------------------------------------- |
-| id                   | INT          | NO   | PK, AI      | -          | Identificador único del empleado             |
-| nombre_completo      | VARCHAR(255) | NO   | -           | -          | Nombre completo del empleado                 |
-| dni                  | VARCHAR(20)  | NO   | UNIQUE, IDX | -          | Documento Nacional de Identidad              |
-| rol                  | VARCHAR(50)  | NO   | -           | "EMPLEADO" | Tipo de personal (EMPLEADO, etc.)            |
-| cargo                | VARCHAR(100) | SÍ   | -           | NULL       | Cargo específico (Asistente, Operario, etc.) |
-| departamento         | VARCHAR(100) | NO   | -           | -          | Departamento al que pertenece                |
-| sede                 | VARCHAR(50)  | SÍ   | -           | NULL       | Sede de trabajo (Lima, Ves, SJL)             |
-| vencimiento_contrato | DATETIME     | SÍ   | -           | NULL       | Fecha de vencimiento del contrato            |
-| email                | VARCHAR(255) | SÍ   | -           | NULL       | Correo electrónico                           |
-| ruta_foto            | VARCHAR(500) | SÍ   | -           | NULL       | Ruta de la foto del empleado                 |
-| estado               | VARCHAR(50)  | NO   | IDX         | "Activo"   | Estado del empleado (Activo/Inactivo)        |
-| tiene_biometrico     | BOOLEAN      | NO   | -           | false      | Indica si tiene registro biométrico          |
-| hora_entrada         | VARCHAR(5)   | SÍ   | -           | "08:00"    | Hora de inicio laboral (formato HH:mm)       |
-| hora_salida          | VARCHAR(5)   | SÍ   | -           | "17:45"    | Hora de fin laboral (formato HH:mm)          |
-| fecha_hora_entrada   | DATETIME     | SÍ   | -           | NULL       | Última entrada registrada                    |
-| fecha_hora_salida    | DATETIME     | SÍ   | -           | NULL       | Última salida registrada                     |
-| creado_en            | DATETIME     | NO   | -           | NOW()      | Fecha y hora de creación                     |
-| actualizado_en       | DATETIME     | NO   | -           | NOW()      | Fecha y hora de última actualización         |
-
-**Relaciones:**
-
-- Uno a Uno con `biometricos_faciales` (FaceBiometric)
-- Uno a Muchos con `registros_acceso` (AccessLog)
-- Uno a Muchos con `pases_temporales` (TemporaryPass - emisor)
-
-**Índices:**
-
-- PRIMARY KEY (id)
-- UNIQUE (dni)
-- INDEX (dni)
-- INDEX (estado)
+| CAMPO | NOMBRE | OBLIGATORIEDAD | TIPO | LONGITUD | FORMATO / OBSERVACIONES | CAMPO API / JSON |
+|-------|--------|:--------------:|------|:--------:|-------------------------|-----------------|
+| id | Identificador único | M | N | - | Auto-incremental, PK | `empleado.id` |
+| nombre_completo | Nombre completo | M | AN | 255 | Nombre y apellidos del empleado | `empleado.nombre_completo` |
+| dni | DNI | M | AN | 20 | Único. Documento Nacional de Identidad | `empleado.dni` |
+| rol | Rol del personal | M | AN | 50 | Default: "EMPLEADO" | `empleado.rol` |
+| cargo | Cargo | O | AN | 100 | Ej: Asistente, Operario | `empleado.cargo` |
+| departamento | Departamento | M | AN | 100 | Área de trabajo | `empleado.departamento` |
+| sede | Sede de trabajo | O | AN | 50 | Ej: Lima, VES, SJL | `empleado.sede` |
+| vencimiento_contrato | Vencimiento de contrato | O | AN | 19 | YYYY-MM-DD HH:mm:ss | `empleado.vencimiento_contrato` |
+| email | Correo electrónico | O | AN | 255 | Formato: usuario@dominio.com | `empleado.email` |
+| ruta_foto | Ruta de foto | O | AN | 500 | Ruta relativa al directorio del servidor | `empleado.ruta_foto` |
+| estado | Estado del empleado | M | AN | 50 | "Activo" / "Inactivo". Default: "Activo" | `empleado.estado` |
+| tiene_biometrico | Tiene biométrico | M | N | - | true / false. Default: false | `empleado.tiene_biometrico` |
+| hora_entrada | Hora de entrada | O | AN | 5 | HH:mm (24h). Default: "08:00" | `empleado.hora_entrada` |
+| hora_salida | Hora de salida | O | AN | 5 | HH:mm (24h). Default: "17:45" | `empleado.hora_salida` |
+| fecha_hora_entrada | Última entrada registrada | O | AN | 19 | YYYY-MM-DD HH:mm:ss | `empleado.fecha_hora_entrada` |
+| fecha_hora_salida | Última salida registrada | O | AN | 19 | YYYY-MM-DD HH:mm:ss | `empleado.fecha_hora_salida` |
+| creado_en | Fecha de creación | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `empleado.creado_en` |
+| actualizado_en | Fecha de actualización | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `empleado.actualizado_en` |
 
 ---
 
-### 3. biometricos_faciales (FaceBiometric)
+## TABLA 3: `biometricos_faciales` — Datos Biométricos Faciales
 
 **Descripción:** Datos biométricos faciales para autenticación por reconocimiento facial.
 
-**Nombre en Base de Datos:** `biometricos_faciales`
-
-| Campo                  | Tipo     | Nulo | Clave      | Default | Descripción                                   |
-| ---------------------- | -------- | ---- | ---------- | ------- | --------------------------------------------- |
-| id                     | INT      | NO   | PK, AI     | -       | Identificador único del registro biométrico   |
-| empleado_id            | INT      | SÍ   | UNIQUE, FK | NULL    | ID del empleado asociado                      |
-| personal_transporte_id | INT      | SÍ   | UNIQUE, FK | NULL    | ID del personal de transporte asociado        |
-| personal_proveedor_id  | INT      | SÍ   | UNIQUE, FK | NULL    | ID del personal de proveedor asociado         |
-| descriptor             | TEXT     | NO   | -          | -       | Descriptor facial (JSON array de 128 valores) |
-| activo                 | BOOLEAN  | NO   | IDX        | true    | Indica si el registro está activo             |
-| creado_en              | DATETIME | NO   | -          | NOW()   | Fecha y hora de creación                      |
-| actualizado_en         | DATETIME | NO   | -          | NOW()   | Fecha y hora de última actualización          |
-
-**Relaciones:**
-
-- Uno a Uno con `empleados` (Employee) - ON DELETE CASCADE
-- Uno a Uno con `personal_transporte` (TransportPersonnel) - ON DELETE CASCADE
-- Uno a Uno con `personal_proveedores` (ProviderPersonnel) - ON DELETE CASCADE
-
-**Índices:**
-
-- PRIMARY KEY (id)
-- UNIQUE (empleado_id)
-- UNIQUE (personal_transporte_id)
-- UNIQUE (personal_proveedor_id)
-- INDEX (activo)
-
-**Nota:** Solo uno de los campos FK (empleado_id, personal_transporte_id, personal_proveedor_id) debe tener valor.
+| CAMPO | NOMBRE | OBLIGATORIEDAD | TIPO | LONGITUD | FORMATO / OBSERVACIONES | CAMPO API / JSON |
+|-------|--------|:--------------:|------|:--------:|-------------------------|-----------------|
+| id | Identificador único | M | N | - | Auto-incremental, PK | `biometrico.id` |
+| empleado_id | ID del empleado | O | N | - | FK → empleados.id. Solo uno de los 3 FK tiene valor | `biometrico.empleado_id` |
+| personal_transporte_id | ID personal transporte | O | N | - | FK → personal_transporte.id | `biometrico.personal_transporte_id` |
+| personal_proveedor_id | ID personal proveedor | O | N | - | FK → personal_proveedores.id | `biometrico.personal_proveedor_id` |
+| descriptor | Descriptor facial | M | AN | TEXT | JSON array de 128 valores Float32 | `biometrico.descriptor` |
+| activo | Estado del registro | M | N | - | true / false. Default: true | `biometrico.activo` |
+| creado_en | Fecha de creación | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `biometrico.creado_en` |
+| actualizado_en | Fecha de actualización | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `biometrico.actualizado_en` |
 
 ---
 
-### 4. personal_transporte (TransportPersonnel)
+## TABLA 4: `personal_transporte` — Personal de Transporte
 
 **Descripción:** Personal de transporte externo (choferes, transportistas).
 
-**Nombre en Base de Datos:** `personal_transporte`
-
-| Campo                         | Tipo         | Nulo | Clave       | Default  | Descripción                          |
-| ----------------------------- | ------------ | ---- | ----------- | -------- | ------------------------------------ |
-| id                            | INT          | NO   | PK, AI      | -        | Identificador único                  |
-| nombre_completo               | VARCHAR(255) | NO   | -           | -        | Nombre completo del personal         |
-| dni                           | VARCHAR(20)  | NO   | UNIQUE, IDX | -        | Documento Nacional de Identidad      |
-| empresa                       | VARCHAR(255) | NO   | -           | -        | Empresa a la que pertenece           |
-| vehiculo                      | VARCHAR(100) | SÍ   | -           | NULL     | Tipo de vehículo                     |
-| matricula                     | VARCHAR(20)  | SÍ   | -           | NULL     | Placa del vehículo                   |
-| ruta_foto                     | VARCHAR(500) | SÍ   | -           | NULL     | Ruta de la foto                      |
-| estado                        | VARCHAR(50)  | NO   | -           | "Activo" | Estado (Activo/Inactivo)             |
-| hora_entrada                  | VARCHAR(5)   | SÍ   | -           | "08:00"  | Hora de inicio laboral (HH:mm)       |
-| hora_salida                   | VARCHAR(5)   | SÍ   | -           | "17:45"  | Hora de fin laboral (HH:mm)          |
-| fecha_hora_entrada_programada | DATETIME     | SÍ   | -           | NULL     | Fecha y hora de entrada programada   |
-| fecha_hora_salida_programada  | DATETIME     | SÍ   | IDX         | NULL     | Fecha y hora de salida programada    |
-| fecha_hora_entrada_real       | DATETIME     | SÍ   | -           | NULL     | Fecha y hora de entrada real         |
-| fecha_hora_salida_real        | DATETIME     | SÍ   | -           | NULL     | Fecha y hora de salida real          |
-| creado_en                     | DATETIME     | NO   | -           | NOW()    | Fecha y hora de creación             |
-| actualizado_en                | DATETIME     | NO   | -           | NOW()    | Fecha y hora de última actualización |
-
-**Relaciones:**
-
-- Uno a Uno con `biometricos_faciales` (FaceBiometric)
-- Uno a Muchos con `registros_acceso` (AccessLog)
-
-**Índices:**
-
-- PRIMARY KEY (id)
-- UNIQUE (dni)
-- INDEX (dni)
-- INDEX (fecha_hora_salida_programada)
+| CAMPO | NOMBRE | OBLIGATORIEDAD | TIPO | LONGITUD | FORMATO / OBSERVACIONES | CAMPO API / JSON |
+|-------|--------|:--------------:|------|:--------:|-------------------------|-----------------|
+| id | Identificador único | M | N | - | Auto-incremental, PK | `transporte.id` |
+| nombre_completo | Nombre completo | M | AN | 255 | Nombre y apellidos | `transporte.nombre_completo` |
+| dni | DNI | M | AN | 20 | Único. Documento Nacional de Identidad | `transporte.dni` |
+| empresa | Empresa | M | AN | 255 | Empresa transportista a la que pertenece | `transporte.empresa` |
+| vehiculo | Tipo de vehículo | O | AN | 100 | Descripción del vehículo | `transporte.vehiculo` |
+| matricula | Placa del vehículo | O | AN | 20 | Número de placa | `transporte.matricula` |
+| ruta_foto | Ruta de foto | O | AN | 500 | Ruta relativa al directorio del servidor | `transporte.ruta_foto` |
+| estado | Estado | M | AN | 50 | "Activo" / "Inactivo". Default: "Activo" | `transporte.estado` |
+| hora_entrada | Hora de entrada | O | AN | 5 | HH:mm. Default: "08:00" | `transporte.hora_entrada` |
+| hora_salida | Hora de salida | O | AN | 5 | HH:mm. Default: "17:45" | `transporte.hora_salida` |
+| fecha_hora_entrada_programada | Entrada programada | O | AN | 19 | YYYY-MM-DD HH:mm:ss | `transporte.fecha_hora_entrada_programada` |
+| fecha_hora_salida_programada | Salida programada | O | AN | 19 | YYYY-MM-DD HH:mm:ss | `transporte.fecha_hora_salida_programada` |
+| fecha_hora_entrada_real | Entrada real | O | AN | 19 | YYYY-MM-DD HH:mm:ss | `transporte.fecha_hora_entrada_real` |
+| fecha_hora_salida_real | Salida real | O | AN | 19 | YYYY-MM-DD HH:mm:ss | `transporte.fecha_hora_salida_real` |
+| creado_en | Fecha de creación | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `transporte.creado_en` |
+| actualizado_en | Fecha de actualización | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `transporte.actualizado_en` |
 
 ---
 
-### 5. empresas_proveedoras (ProviderCompany)
+## TABLA 5: `empresas_proveedoras` — Empresas Proveedoras
 
 **Descripción:** Empresas proveedoras de servicios o suministros.
 
-**Nombre en Base de Datos:** `empresas_proveedoras`
-
-| Campo              | Tipo         | Nulo | Clave       | Default  | Descripción                          |
-| ------------------ | ------------ | ---- | ----------- | -------- | ------------------------------------ |
-| id                 | INT          | NO   | PK, AI      | -        | Identificador único de la empresa    |
-| nombre_empresa     | VARCHAR(255) | NO   | UNIQUE, IDX | -        | Nombre de la empresa proveedora      |
-| ruc                | VARCHAR(50)  | SÍ   | -           | NULL     | RUC de la empresa                    |
-| tipo_suministro    | VARCHAR(100) | SÍ   | -           | NULL     | Tipo de suministro que provee        |
-| contacto_comercial | VARCHAR(255) | SÍ   | -           | NULL     | Nombre del contacto comercial        |
-| telefono           | VARCHAR(50)  | SÍ   | -           | NULL     | Teléfono de contacto                 |
-| direccion          | VARCHAR(500) | SÍ   | -           | NULL     | Dirección de la empresa              |
-| estado             | VARCHAR(50)  | NO   | -           | "Activo" | Estado (Activo/Inactivo)             |
-| creado_en          | DATETIME     | NO   | -           | NOW()    | Fecha y hora de creación             |
-| actualizado_en     | DATETIME     | NO   | -           | NOW()    | Fecha y hora de última actualización |
-
-**Índices:**
-
-- PRIMARY KEY (id)
-- UNIQUE (nombre_empresa)
-- INDEX (nombre_empresa)
+| CAMPO | NOMBRE | OBLIGATORIEDAD | TIPO | LONGITUD | FORMATO / OBSERVACIONES | CAMPO API / JSON |
+|-------|--------|:--------------:|------|:--------:|-------------------------|-----------------|
+| id | Identificador único | M | N | - | Auto-incremental, PK | `empresa.id` |
+| nombre_empresa | Nombre de la empresa | M | AN | 255 | Único en el sistema | `empresa.nombre_empresa` |
+| ruc | RUC | O | AN | 50 | Registro Único de Contribuyentes | `empresa.ruc` |
+| tipo_suministro | Tipo de suministro | O | AN | 100 | Tipo de servicio o producto que provee | `empresa.tipo_suministro` |
+| contacto_comercial | Contacto comercial | O | AN | 255 | Nombre del representante | `empresa.contacto_comercial` |
+| telefono | Teléfono | O | AN | 50 | Número de contacto | `empresa.telefono` |
+| direccion | Dirección | O | AN | 500 | Dirección física de la empresa | `empresa.direccion` |
+| estado | Estado | M | AN | 50 | "Activo" / "Inactivo". Default: "Activo" | `empresa.estado` |
+| creado_en | Fecha de creación | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `empresa.creado_en` |
+| actualizado_en | Fecha de actualización | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `empresa.actualizado_en` |
 
 ---
 
-### 6. personal_proveedores (ProviderPersonnel)
+## TABLA 6: `personal_proveedores` — Personal de Proveedores
 
 **Descripción:** Personal de empresas proveedoras que requiere acceso a las instalaciones.
 
-**Nombre en Base de Datos:** `personal_proveedores`
-
-| Campo                         | Tipo         | Nulo | Clave       | Default  | Descripción                          |
-| ----------------------------- | ------------ | ---- | ----------- | -------- | ------------------------------------ |
-| id                            | INT          | NO   | PK, AI      | -        | Identificador único                  |
-| nombre_completo               | VARCHAR(255) | NO   | -           | -        | Nombre completo del personal         |
-| dni                           | VARCHAR(20)  | NO   | UNIQUE, IDX | -        | Documento Nacional de Identidad      |
-| empresa                       | VARCHAR(255) | NO   | -           | -        | Empresa a la que pertenece           |
-| cargo                         | VARCHAR(100) | SÍ   | -           | NULL     | Cargo en la empresa                  |
-| telefono                      | VARCHAR(50)  | SÍ   | -           | NULL     | Teléfono de contacto                 |
-| ruta_foto                     | VARCHAR(500) | SÍ   | -           | NULL     | Ruta de la foto                      |
-| estado                        | VARCHAR(50)  | NO   | -           | "Activo" | Estado (Activo/Inactivo)             |
-| hora_entrada                  | VARCHAR(5)   | SÍ   | -           | "08:00"  | Hora de inicio laboral (HH:mm)       |
-| hora_salida                   | VARCHAR(5)   | SÍ   | -           | "17:45"  | Hora de fin laboral (HH:mm)          |
-| fecha_hora_entrada_programada | DATETIME     | SÍ   | -           | NULL     | Fecha y hora de entrada programada   |
-| fecha_hora_salida_programada  | DATETIME     | SÍ   | IDX         | NULL     | Fecha y hora de salida programada    |
-| fecha_hora_entrada_real       | DATETIME     | SÍ   | -           | NULL     | Fecha y hora de entrada real         |
-| fecha_hora_salida_real        | DATETIME     | SÍ   | -           | NULL     | Fecha y hora de salida real          |
-| creado_en                     | DATETIME     | NO   | -           | NOW()    | Fecha y hora de creación             |
-| actualizado_en                | DATETIME     | NO   | -           | NOW()    | Fecha y hora de última actualización |
-
-**Relaciones:**
-
-- Uno a Uno con `biometricos_faciales` (FaceBiometric)
-- Uno a Muchos con `registros_acceso` (AccessLog)
-
-**Índices:**
-
-- PRIMARY KEY (id)
-- UNIQUE (dni)
-- INDEX (dni)
-- INDEX (fecha_hora_salida_programada)
+| CAMPO | NOMBRE | OBLIGATORIEDAD | TIPO | LONGITUD | FORMATO / OBSERVACIONES | CAMPO API / JSON |
+|-------|--------|:--------------:|------|:--------:|-------------------------|-----------------|
+| id | Identificador único | M | N | - | Auto-incremental, PK | `proveedor.id` |
+| nombre_completo | Nombre completo | M | AN | 255 | Nombre y apellidos | `proveedor.nombre_completo` |
+| dni | DNI | M | AN | 20 | Único. Documento Nacional de Identidad | `proveedor.dni` |
+| empresa | Empresa | M | AN | 255 | Empresa proveedora a la que pertenece | `proveedor.empresa` |
+| cargo | Cargo | O | AN | 100 | Cargo en la empresa | `proveedor.cargo` |
+| telefono | Teléfono | O | AN | 50 | Número de contacto | `proveedor.telefono` |
+| ruta_foto | Ruta de foto | O | AN | 500 | Ruta relativa al directorio del servidor | `proveedor.ruta_foto` |
+| estado | Estado | M | AN | 50 | "Activo" / "Inactivo". Default: "Activo" | `proveedor.estado` |
+| hora_entrada | Hora de entrada | O | AN | 5 | HH:mm. Default: "08:00" | `proveedor.hora_entrada` |
+| hora_salida | Hora de salida | O | AN | 5 | HH:mm. Default: "17:45" | `proveedor.hora_salida` |
+| fecha_hora_entrada_programada | Entrada programada | O | AN | 19 | YYYY-MM-DD HH:mm:ss | `proveedor.fecha_hora_entrada_programada` |
+| fecha_hora_salida_programada | Salida programada | O | AN | 19 | YYYY-MM-DD HH:mm:ss | `proveedor.fecha_hora_salida_programada` |
+| fecha_hora_entrada_real | Entrada real | O | AN | 19 | YYYY-MM-DD HH:mm:ss | `proveedor.fecha_hora_entrada_real` |
+| fecha_hora_salida_real | Salida real | O | AN | 19 | YYYY-MM-DD HH:mm:ss | `proveedor.fecha_hora_salida_real` |
+| creado_en | Fecha de creación | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `proveedor.creado_en` |
+| actualizado_en | Fecha de actualización | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `proveedor.actualizado_en` |
 
 ---
 
-### 7. registros_acceso (AccessLog)
+## TABLA 7: `registros_acceso` — Registros de Acceso
 
 **Descripción:** Registro histórico de todos los accesos al sistema (entradas y salidas).
 
-**Nombre en Base de Datos:** `registros_acceso`
-
-| Campo          | Tipo         | Nulo | Clave  | Default | Descripción                                            |
-| -------------- | ------------ | ---- | ------ | ------- | ------------------------------------------------------ |
-| id             | INT          | NO   | PK, AI | -       | Identificador único del registro                       |
-| nombre_usuario | VARCHAR(255) | NO   | -      | -       | Nombre del usuario que accedió                         |
-| dni_usuario    | VARCHAR(20)  | SÍ   | IDX    | NULL    | DNI del usuario                                        |
-| rol            | VARCHAR(100) | NO   | -      | -       | Rol del usuario                                        |
-| estado         | VARCHAR(50)  | NO   | IDX    | -       | Estado del acceso (Aprobado/Denegado/Fuera de Horario) |
-| zona           | VARCHAR(100) | NO   | -      | -       | Zona a la que se accedió                               |
-| tipo           | VARCHAR(50)  | NO   | IDX    | -       | Tipo de alerta (success/warning/critical)              |
-| hora_entrada   | DATETIME     | NO   | IDX    | NOW()   | Fecha y hora de entrada                                |
-| hora_salida    | DATETIME     | SÍ   | -      | NULL    | Fecha y hora de salida (NULL hasta que salga)          |
-| empleado_id    | INT          | SÍ   | FK     | NULL    | ID del empleado (si aplica)                            |
-| transporte_id  | INT          | SÍ   | FK     | NULL    | ID del personal de transporte (si aplica)              |
-| proveedor_id   | INT          | SÍ   | FK     | NULL    | ID del personal de proveedor (si aplica)               |
-
-**Relaciones:**
-
-- Muchos a Uno con `empleados` (Employee) - ON DELETE SET NULL
-- Muchos a Uno con `personal_transporte` (TransportPersonnel) - ON DELETE SET NULL
-- Muchos a Uno con `personal_proveedores` (ProviderPersonnel) - ON DELETE SET NULL
-
-**Índices:**
-
-- PRIMARY KEY (id)
-- INDEX (hora_entrada)
-- INDEX (dni_usuario)
-- INDEX (estado)
-- INDEX (tipo)
-
-**Nota:** Solo uno de los campos FK (empleado_id, transporte_id, proveedor_id) debe tener valor.
+| CAMPO | NOMBRE | OBLIGATORIEDAD | TIPO | LONGITUD | FORMATO / OBSERVACIONES | CAMPO API / JSON |
+|-------|--------|:--------------:|------|:--------:|-------------------------|-----------------|
+| id | Identificador único | M | N | - | Auto-incremental, PK | `acceso.id` |
+| nombre_usuario | Nombre del usuario | M | AN | 255 | Nombre de quien accedió | `acceso.nombre_usuario` |
+| dni_usuario | DNI del usuario | O | AN | 20 | Documento del usuario | `acceso.dni_usuario` |
+| rol | Rol del usuario | M | AN | 100 | Tipo de personal | `acceso.rol` |
+| estado | Estado del acceso | M | AN | 50 | Aprobado / Denegado / Fuera de Horario | `acceso.estado` |
+| zona | Zona de acceso | M | AN | 100 | Zona a la que se accedió | `acceso.zona` |
+| tipo | Tipo de alerta | M | AN | 50 | success / warning / critical | `acceso.tipo` |
+| hora_entrada | Fecha y hora de entrada | M | AN | 19 | YYYY-MM-DD HH:mm:ss. Default: NOW() | `acceso.hora_entrada` |
+| hora_salida | Fecha y hora de salida | O | AN | 19 | YYYY-MM-DD HH:mm:ss. NULL hasta que salga | `acceso.hora_salida` |
+| empleado_id | ID del empleado | O | N | - | FK → empleados.id | `acceso.empleado_id` |
+| transporte_id | ID personal transporte | O | N | - | FK → personal_transporte.id | `acceso.transporte_id` |
+| proveedor_id | ID personal proveedor | O | N | - | FK → personal_proveedores.id | `acceso.proveedor_id` |
 
 ---
 
-### 8. pases_temporales (TemporaryPass)
+## TABLA 8: `pases_temporales` — Pases Temporales
 
 **Descripción:** Pases temporales para visitantes o personal con acceso limitado en el tiempo.
 
-**Nombre en Base de Datos:** `pases_temporales`
-
-| Campo           | Tipo         | Nulo | Clave  | Default  | Descripción                                 |
-| --------------- | ------------ | ---- | ------ | -------- | ------------------------------------------- |
-| id              | INT          | NO   | PK, AI | -        | Identificador único del pase                |
-| nombre_completo | VARCHAR(255) | NO   | -      | -        | Nombre completo del visitante               |
-| dni             | VARCHAR(20)  | NO   | -      | -        | Documento Nacional de Identidad             |
-| empresa         | VARCHAR(255) | SÍ   | -      | NULL     | Empresa del visitante                       |
-| motivo          | TEXT         | NO   | -      | -        | Motivo de la visita                         |
-| autorizado_por  | VARCHAR(255) | NO   | -      | -        | Nombre del supervisor que autorizó          |
-| emitido_por_id  | INT          | SÍ   | FK     | NULL     | ID del empleado que emitió el pase          |
-| valido_desde    | DATETIME     | NO   | IDX    | -        | Fecha y hora desde la cual es válido        |
-| valido_hasta    | DATETIME     | NO   | IDX    | -        | Fecha y hora hasta la cual es válido        |
-| estado          | VARCHAR(50)  | NO   | IDX    | "Activo" | Estado del pase (Activo/Expirado/Cancelado) |
-| creado_en       | DATETIME     | NO   | -      | NOW()    | Fecha y hora de creación                    |
-
-**Relaciones:**
-
-- Muchos a Uno con `empleados` (Employee - emisor) - ON DELETE SET NULL
-
-**Índices:**
-
-- PRIMARY KEY (id)
-- INDEX (valido_desde, valido_hasta)
-- INDEX (estado)
+| CAMPO | NOMBRE | OBLIGATORIEDAD | TIPO | LONGITUD | FORMATO / OBSERVACIONES | CAMPO API / JSON |
+|-------|--------|:--------------:|------|:--------:|-------------------------|-----------------|
+| id | Identificador único | M | N | - | Auto-incremental, PK | `pase.id` |
+| nombre_completo | Nombre del visitante | M | AN | 255 | Nombre completo del visitante | `pase.nombre_completo` |
+| dni | DNI del visitante | M | AN | 20 | Documento Nacional de Identidad | `pase.dni` |
+| empresa | Empresa del visitante | O | AN | 255 | Empresa a la que pertenece | `pase.empresa` |
+| motivo | Motivo de visita | M | AN | TEXT | Descripción del motivo de la visita | `pase.motivo` |
+| autorizado_por | Autorizado por | M | AN | 255 | Nombre del supervisor que autorizó | `pase.autorizado_por` |
+| emitido_por_id | ID del emisor | O | N | - | FK → empleados.id (quien emitió el pase) | `pase.emitido_por_id` |
+| valido_desde | Válido desde | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `pase.valido_desde` |
+| valido_hasta | Válido hasta | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `pase.valido_hasta` |
+| estado | Estado del pase | M | AN | 50 | Activo / Expirado / Cancelado. Default: "Activo" | `pase.estado` |
+| creado_en | Fecha de creación | M | AN | 19 | YYYY-MM-DD HH:mm:ss | `pase.creado_en` |
 
 ---
 
@@ -315,31 +208,27 @@ Roles disponibles en el sistema para usuarios administrativos.
 │   (Employee)        │                 │   (FaceBiometric)    │
 └──────────┬──────────┘                 └───────────┬──────────┘
            │ 1:N                                    │
-           │                                        │
            ├────────────────────────┐               │
-           │                        │               │
-           │                        │               │
      1:N   ▼                  1:N   ▼               │
-┌─────────────────────┐    ┌─────────────────────┐ │
-│  registros_acceso   │    │  pases_temporales   │ │
-│   (AccessLog)       │    │  (TemporaryPass)    │ │
-└──────────┬──────────┘    └─────────────────────┘ │
-           │ N:1                                    │
-           │                                        │ 1:1
-           │            ┌────────────────────┐      │
-           └────────────┤ personal_transporte│◄─────┤
-                        │ (TransportPersonnel)│      │
-                        └────────────────────┘      │
-                                                    │
-           ┌────────────────────┐                   │
-           │ empresas_proveedoras│                  │
-           │ (ProviderCompany)  │                  │
-           └────────────────────┘                  │
-                                                   │ 1:1
-                        ┌────────────────────┐     │
-           └────────────┤personal_proveedores│◄────┘
+┌─────────────────────┐    ┌─────────────────────┐  │
+│  registros_acceso   │    │  pases_temporales   │  │
+│   (AccessLog)       │    │  (TemporaryPass)    │  │
+└──────────┬──────────┘    └─────────────────────┘  │
+           │ N:1                                     │ 1:1
+           │            ┌────────────────────┐       │
+           └────────────┤ personal_transporte│◄──────┤
+                        │ (TransportPersonnel)│       │
+                        └────────────────────┘       │
+                                                     │ 1:1
+                        ┌────────────────────┐       │
+                        │personal_proveedores│◄──────┘
                         │ (ProviderPersonnel)│
                         └────────────────────┘
+
+┌────────────────────────┐
+│  empresas_proveedoras  │
+│  (ProviderCompany)     │
+└────────────────────────┘
 ```
 
 ---
@@ -347,30 +236,23 @@ Roles disponibles en el sistema para usuarios administrativos.
 ## Notas Importantes
 
 ### Reglas de Negocio
-
-1. **Datos Biométricos:** Un registro biométrico solo puede estar asociado a UNA persona (empleado, personal de transporte o personal de proveedor).
-
-2. **Registros de Acceso:** Un registro de acceso solo puede estar vinculado a UNA fuente (empleado, transporte o proveedor).
-
-3. **Horarios:** Los horarios de entrada y salida se almacenan en formato HH:mm (24 horas).
-
-4. **Estados:** Los estados válidos son "Activo" e "Inactivo" para la mayoría de las entidades.
-
-5. **Pases Temporales:** Los pases temporales deben validarse contra las fechas `valido_desde` y `valido_hasta`.
+1. **Datos Biométricos:** Un registro biométrico solo puede estar asociado a UNA persona.
+2. **Registros de Acceso:** Un registro solo puede estar vinculado a UNA fuente (empleado, transporte o proveedor).
+3. **Horarios:** Se almacenan en formato HH:mm (24 horas).
+4. **Estados:** Los estados válidos son "Activo" e "Inactivo" para la mayoría de entidades.
+5. **Pases Temporales:** Deben validarse contra las fechas `valido_desde` y `valido_hasta`.
 
 ### Seguridad
-
 - Las contraseñas se almacenan encriptadas en el campo `contrasena`.
 - Los descriptores biométricos se almacenan como JSON en formato TEXT.
 - Las rutas de fotos son rutas relativas al directorio de almacenamiento del sistema.
 
 ### Integridad Referencial
-
 - **CASCADE:** Al eliminar un empleado/personal, se eliminan sus datos biométricos.
-- **SET NULL:** Al eliminar un empleado/personal, sus registros de acceso y pases temporales mantienen la referencia en NULL pero conservan el historial.
+- **SET NULL:** Al eliminar un empleado/personal, sus registros de acceso y pases temporales conservan el historial con referencia NULL.
 
 ---
 
-**Última actualización:** 24 de febrero de 2026
-**Versión del esquema:** 1.0
+**Última actualización:** 12 de abril de 2026
+**Versión del esquema:** 2.0
 **Generado desde:** `prisma/schema.prisma`
