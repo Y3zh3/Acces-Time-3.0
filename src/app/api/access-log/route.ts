@@ -3,219 +3,47 @@ import { prisma } from '@/lib/prisma';
 
 /**
  * Verifica si el acceso está dentro del horario laboral
+ * MODO 24/7: Siempre permite acceso (validación desactivada)
  */
 function isWithinWorkingHours(workStart: string | null, workEnd: string | null): boolean {
-  if (!workStart || !workEnd) return true; // Si no hay horario configurado, se permite
-
-  const now = new Date();
-  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-  
-  return currentTime >= workStart && currentTime <= workEnd;
+  // VALIDACIÓN DESACTIVADA: Permite acceso en cualquier momento
+  return true;
 }
 
 /**
  * Verifica si la entrada está dentro de la ventana permitida (Personal interno)
- * MODO FLEXIBLE: Si estás DENTRO del horario exacto → acceso automático
- * Si estás FUERA → permite desde 60 min ANTES hasta 60 min DESPUÉS del horario
- * Maneja correctamente horarios nocturnos y cruces de medianoche
+ * MODO 24/7: Siempre permite acceso (validación desactivada)
  */
 function isWithinEmployeeEntryWindow(workStart: string | null, workEnd: string | null): { allowed: boolean; windowStart: string; windowEnd: string } {
-  if (!workStart || !workEnd) {
-    return { allowed: true, windowStart: 'N/A', windowEnd: 'N/A' };
-  }
-
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  
-  // Parsear hora de inicio y fin
-  const [startHour, startMinute] = workStart.split(':').map(Number);
-  let startMinutes = startHour * 60 + startMinute;
-  
-  const [endHour, endMinute] = workEnd.split(':').map(Number);
-  let endMinutes = endHour * 60 + endMinute;
-  
-  // Si hora de fin es menor que hora de inicio, es un horario nocturno (cruza medianoche)
-  const isNightShift = endMinutes <= startMinutes;
-  
-  if (isNightShift) {
-    endMinutes += 1440; // Agregar 24 horas (1440 minutos) a la hora de fin
-    let adjustedCurrentMinutes = currentMinutes;
-    if (currentMinutes < startMinutes) {
-      adjustedCurrentMinutes += 1440;
-    }
-    
-    // PRIORIDAD 1: Verificar si está DENTRO del horario exacto (sin tolerancias)
-    const isInExactSchedule = adjustedCurrentMinutes >= startMinutes && adjustedCurrentMinutes <= endMinutes;
-    
-    // PRIORIDAD 2: Aplicar ventana de tolerancia extendida
-    const windowStartMinutes = startMinutes - 60;
-    const windowEndMinutes = endMinutes + 60;
-    const isInToleranceWindow = adjustedCurrentMinutes >= windowStartMinutes && adjustedCurrentMinutes <= windowEndMinutes;
-    
-    // Permitir si está en horario exacto O en ventana de tolerancia
-    const allowed = isInExactSchedule || isInToleranceWindow;
-    
-    // Calcular horas para mostrar (normalizadas a 24h)
-    const wsHour = Math.floor((windowStartMinutes + 1440) % 1440 / 60);
-    const wsMinute = (windowStartMinutes + 1440) % 60;
-    const weHour = Math.floor(windowEndMinutes % 1440 / 60);
-    const weMinute = windowEndMinutes % 60;
-    
-    const windowStart = `${wsHour.toString().padStart(2, '0')}:${wsMinute.toString().padStart(2, '0')}`;
-    const windowEnd = `${weHour.toString().padStart(2, '0')}:${weMinute.toString().padStart(2, '0')}`;
-    
-    return { allowed, windowStart, windowEnd };
-  }
-  
-  // Horario normal (no cruza medianoche)
-  // PRIORIDAD 1: Verificar si está DENTRO del horario exacto (sin tolerancias)
-  const isInExactSchedule = currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-  
-  // PRIORIDAD 2: Aplicar ventana de tolerancia extendida
-  let windowStartMinutes = startMinutes - 60;
-  let windowEndMinutes = endMinutes + 60;
-  
-  // Manejar minutos negativos (antes de medianoche)
-  if (windowStartMinutes < 0) {
-    windowStartMinutes += 1440; // Normalizar a 24h
-  }
-  if (windowEndMinutes >= 1440) {
-    windowEndMinutes = windowEndMinutes % 1440; // Normalizar a 24h
-  }
-  
-  // Verificar si está dentro de la ventana de tolerancia
-  let isInToleranceWindow = false;
-  if (windowStartMinutes > windowEndMinutes) {
-    // La ventana cruza medianoche
-    isInToleranceWindow = currentMinutes >= windowStartMinutes || currentMinutes <= windowEndMinutes;
-  } else {
-    // Ventana normal
-    isInToleranceWindow = currentMinutes >= windowStartMinutes && currentMinutes <= windowEndMinutes;
-  }
-  
-  // Permitir si está en horario exacto O en ventana de tolerancia
-  const allowed = isInExactSchedule || isInToleranceWindow;
-  
-  // Calcular horas para retornar
-  const wsHour = Math.floor(windowStartMinutes / 60);
-  const wsMinute = windowStartMinutes % 60;
-  const weHour = Math.floor(windowEndMinutes / 60);
-  const weMinute = windowEndMinutes % 60;
-  
-  const windowStart = `${wsHour.toString().padStart(2, '0')}:${wsMinute.toString().padStart(2, '0')}`;
-  const windowEnd = `${weHour.toString().padStart(2, '0')}:${weMinute.toString().padStart(2, '0')}`;
-  
-  return { allowed, windowStart, windowEnd };
+  // VALIDACIÓN DESACTIVADA: Permite acceso en cualquier momento
+  return { allowed: true, windowStart: '00:00', windowEnd: '23:59' };
 }
 
 /**
  * Verifica si la salida está dentro de la ventana permitida (Personal interno)
- * Permite salir desde 60 minutos ANTES de la hora programada hasta 120 minutos DESPUÉS (MÁS FLEXIBLE)
- * Maneja correctamente horarios nocturnos
+ * MODO 24/7: Siempre permite salida (validación desactivada)
  */
 function isWithinEmployeeExitWindow(workEnd: string | null): { allowed: boolean; windowStart: string; windowEnd: string } {
-  if (!workEnd) {
-    return { allowed: true, windowStart: 'N/A', windowEnd: 'N/A' };
-  }
-
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  
-  // Parsear hora de salida
-  const [endHour, endMinute] = workEnd.split(':').map(Number);
-  const endMinutes = endHour * 60 + endMinute;
-  
-  // Calcular ventana: desde 60 minutos antes hasta 120 minutos después (MÁS FLEXIBLE)
-  let windowStartMinutes = endMinutes - 60;
-  let windowEndMinutes = endMinutes + 120;
-  
-  // Manejar minutos negativos (antes de medianoche)
-  if (windowStartMinutes < 0) {
-    windowStartMinutes += 1440; // Normalizar a 24h
-  }
-  if (windowEndMinutes >= 1440) {
-    windowEndMinutes = windowEndMinutes % 1440; // Normalizar a 24h
-  }
-  
-  // Verificar si está dentro de la ventana
-  let allowed = false;
-  if (windowStartMinutes > windowEndMinutes) {
-    // La ventana cruza medianoche
-    allowed = currentMinutes >= windowStartMinutes || currentMinutes <= windowEndMinutes;
-  } else {
-    // Ventana normal
-    allowed = currentMinutes >= windowStartMinutes && currentMinutes <= windowEndMinutes;
-  }
-  
-  // Calcular horas para retornar
-  const wsHour = Math.floor(windowStartMinutes / 60);
-  const wsMinute = windowStartMinutes % 60;
-  const weHour = Math.floor(windowEndMinutes / 60);
-  const weMinute = windowEndMinutes % 60;
-  
-  const windowStart = `${wsHour.toString().padStart(2, '0')}:${wsMinute.toString().padStart(2, '0')}`;
-  const windowEnd = `${weHour.toString().padStart(2, '0')}:${weMinute.toString().padStart(2, '0')}`;
-  
-  return { allowed, windowStart, windowEnd };
+  // VALIDACIÓN DESACTIVADA: Permite salida en cualquier momento
+  return { allowed: true, windowStart: '00:00', windowEnd: '23:59' };
 }
 
 /**
  * Verifica si la entrada está dentro de la ventana permitida (Transporte/Proveedores)
- * Permite ingresar desde 60 minutos ANTES de la hora programada hasta 120 minutos DESPUÉS (MÁS FLEXIBLE)
- * @param entryDateTime - Fecha y hora completa programada de entrada
- * @returns Objeto con validación y ventanas de tiempo
+ * MODO 24/7: Siempre permite acceso (validación desactivada)
  */
 function isWithinProviderEntryWindow(entryDateTime: Date | null): { allowed: boolean; windowStart: string; windowEnd: string } {
-  if (!entryDateTime) {
-    return { allowed: true, windowStart: 'N/A', windowEnd: 'N/A' };
-  }
-
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  
-  // Extraer hora de la fecha programada
-  const programmedHour = entryDateTime.getHours();
-  const programmedMinute = entryDateTime.getMinutes();
-  const programmedMinutes = programmedHour * 60 + programmedMinute;
-  
-  // Calcular ventana: desde 60 minutos antes hasta 120 minutos después (MÁS FLEXIBLE)
-  const windowStartMinutes = programmedMinutes - 60;
-  const windowEndMinutes = programmedMinutes + 120;
-  
-  // Calcular horas para retornar
-  const wsHour = Math.floor(windowStartMinutes / 60);
-  const wsMinute = windowStartMinutes % 60;
-  const weHour = Math.floor(windowEndMinutes / 60);
-  const weMinute = windowEndMinutes % 60;
-  
-  const windowStart = `${wsHour.toString().padStart(2, '0')}:${wsMinute.toString().padStart(2, '0')}`;
-  const windowEnd = `${weHour.toString().padStart(2, '0')}:${weMinute.toString().padStart(2, '0')}`;
-  
-  // Verificar si está dentro de la ventana
-  const allowed = currentMinutes >= windowStartMinutes && currentMinutes <= windowEndMinutes;
-  
-  return { allowed, windowStart, windowEnd };
+  // VALIDACIÓN DESACTIVADA: Permite acceso en cualquier momento
+  return { allowed: true, windowStart: '00:00', windowEnd: '23:59' };
 }
 
 /**
  * Verifica si la entrada está dentro de la ventana permitida (Transporte/Proveedores - legacy)
- * Permite ingresar desde la hora programada hasta 30 minutos después
+ * MODO 24/7: Siempre permite acceso (validación desactivada)
  */
 function isWithinEntryWindow(workStart: string | null): boolean {
-  if (!workStart) return true; // Si no hay horario configurado, se permite
-
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  
-  // Parsear hora de inicio
-  const [startHour, startMinute] = workStart.split(':').map(Number);
-  const startMinutes = startHour * 60 + startMinute;
-  
-  // Calcular ventana: desde inicio hasta 30 minutos después
-  const endMinutes = startMinutes + 30;
-  
-  // Verificar si está dentro de la ventana
-  return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+  // VALIDACIÓN DESACTIVADA: Permite acceso en cualquier momento
+  return true;
 }
 
 /**
