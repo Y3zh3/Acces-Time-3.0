@@ -19,6 +19,8 @@ import {
 import * as XLSX from 'xlsx'
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -58,6 +60,8 @@ export default function TransportManagement() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [historialDialogOpen, setHistorialDialogOpen] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState<{ dni: string; fullName: string } | null>(null)
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
   const { toast } = useToast()
   const permissions = usePermissions()
   
@@ -227,20 +231,222 @@ export default function TransportManagement() {
     reader.readAsDataURL(file)
   }
 
+  const exportToPDF = () => {
+    // Validar filtros de fecha
+    if (dateFrom && dateTo) {
+      const from = new Date(dateFrom);
+      const to = new Date(dateTo);
+      
+      if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+        toast({
+          variant: 'destructive',
+          title: 'Fechas inválidas',
+          description: 'Los filtros de fecha no son válidos. Verifica el formato.',
+        });
+        return;
+      }
+      
+      if (to < from) {
+        toast({
+          variant: 'destructive',
+          title: 'Rango de fechas inválido',
+          description: 'La fecha "Hasta" debe ser posterior a la fecha "Desde".',
+        });
+        return;
+      }
+    }
+
+    // Filtrar por rango de fechas
+    let dataToFilter = filteredAccessLogs;
+    if (dateFrom || dateTo) {
+      dataToFilter = filteredAccessLogs.filter(log => {
+        if (!log.actualEntryDateTime) return false;
+        const logDate = new Date(log.actualEntryDateTime);
+        logDate.setHours(0, 0, 0, 0);
+        
+        if (dateFrom && dateTo) {
+          const from = new Date(dateFrom);
+          const to = new Date(dateTo);
+          to.setHours(23, 59, 59, 999);
+          return logDate >= from && logDate <= to;
+        } else if (dateFrom) {
+          const from = new Date(dateFrom);
+          return logDate >= from;
+        } else if (dateTo) {
+          const to = new Date(dateTo);
+          to.setHours(23, 59, 59, 999);
+          return logDate <= to;
+        }
+        return true;
+      });
+    }
+
+    if (dataToFilter.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Sin registros',
+        description: 'No hay registros en el rango de fechas seleccionado.',
+      });
+      return;
+    }
+
+    const doc = new jsPDF();
+    const fechaStr = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: es });
+    
+    const totalRegistros = dataToFilter.length;
+    const activos = dataToFilter.filter(log => log.status === 'Activo').length;
+    const inactivos = dataToFilter.filter(log => log.status === 'Inactivo').length;
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INFORME DE PERSONAL DE TRANSPORTE', 105, 15, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha generación: ${fechaStr}`, 14, 25);
+    doc.text(`Generado: ${new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' })}`, 14, 30);
+    
+    if (dateFrom && dateTo) {
+      doc.text(`Período: ${format(new Date(dateFrom), 'dd/MM/yyyy')} - ${format(new Date(dateTo), 'dd/MM/yyyy')}`, 14, 35);
+    } else {
+      doc.text('Período: Todos los registros', 14, 35);
+    }
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RESUMEN DE PERSONAL', 14, 45);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Personal: ${totalRegistros}`, 14, 53);
+    doc.text(`Activos: ${activos}`, 14, 58);
+    doc.text(`Inactivos: ${inactivos}`, 14, 63);
+
+    const tableData = dataToFilter.map(log => [
+      log.dni,
+      log.fullName?.toUpperCase() || '',
+      log.company?.toUpperCase() || '',
+      log.vehicle?.toUpperCase() || '-',
+      log.licensePlate?.toUpperCase() || '-',
+      log.status?.toUpperCase() || '',
+      log.actualEntryDateTime ? new Date(log.actualEntryDateTime).toLocaleString('es-PE', {
+        timeZone: 'America/Lima',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) : '-',
+    ]);
+
+    autoTable(doc, {
+      head: [['DNI', 'Nombre', 'Empresa', 'Vehículo', 'Patente', 'Estado', 'Entrada']],
+      body: tableData,
+      startY: 70,
+      styles: { fontSize: 7, cellPadding: 2 },
+      headStyles: { fillColor: [37, 99, 235], fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 25 },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 20 },
+        6: { cellWidth: 30 },
+      },
+    });
+
+    const fileName = `Informe_Transporte_${format(new Date(), 'dd-MM-yyyy')}.pdf`;
+    doc.save(fileName);
+
+    toast({
+      title: '📄 PDF Generado',
+      description: `${fileName} - ${totalRegistros} registros`,
+    });
+  }
+
   const exportToExcel = () => {
+    // Validar filtros de fecha
+    if (dateFrom && dateTo) {
+      const from = new Date(dateFrom);
+      const to = new Date(dateTo);
+      
+      if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+        toast({
+          variant: 'destructive',
+          title: 'Fechas inválidas',
+          description: 'Los filtros de fecha no son válidos. Verifica el formato.',
+        });
+        return;
+      }
+      
+      if (to < from) {
+        toast({
+          variant: 'destructive',
+          title: 'Rango de fechas inválido',
+          description: 'La fecha "Hasta" debe ser posterior a la fecha "Desde".',
+        });
+        return;
+      }
+    }
+
+    // Filtrar por rango de fechas
+    let dataToFilter = filteredAccessLogs;
+    if (dateFrom || dateTo) {
+      dataToFilter = filteredAccessLogs.filter(log => {
+        if (!log.actualEntryDateTime) return false;
+        const logDate = new Date(log.actualEntryDateTime);
+        logDate.setHours(0, 0, 0, 0);
+        
+        if (dateFrom && dateTo) {
+          const from = new Date(dateFrom);
+          const to = new Date(dateTo);
+          to.setHours(23, 59, 59, 999);
+          return logDate >= from && logDate <= to;
+        } else if (dateFrom) {
+          const from = new Date(dateFrom);
+          return logDate >= from;
+        } else if (dateTo) {
+          const to = new Date(dateTo);
+          to.setHours(23, 59, 59, 999);
+          return logDate <= to;
+        }
+        return true;
+      });
+    }
+
+    if (dataToFilter.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Sin registros',
+        description: 'No hay registros en el rango de fechas seleccionado.',
+      });
+      return;
+    }
+
     const workbook = XLSX.utils.book_new();
     
     const fechaStr = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: es });
     
-    const totalRegistros = filteredAccessLogs.length;
-    const activos = filteredAccessLogs.filter(log => log.status === 'Activo').length;
-    const inactivos = filteredAccessLogs.filter(log => log.status === 'Inactivo').length;
+    const totalRegistros = dataToFilter.length;
+    const activos = dataToFilter.filter(log => log.status === 'Activo').length;
+    const inactivos = dataToFilter.filter(log => log.status === 'Inactivo').length;
 
     const resumenData = [
       ['INFORME DE PERSONAL DE TRANSPORTE'],
       [''],
       ['Fecha generación:', fechaStr],
       ['Generado:', new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' })],
+      [''],
+    ];
+    
+    if (dateFrom && dateTo) {
+      resumenData.push(['Período:', `${format(new Date(dateFrom), 'dd/MM/yyyy')} - ${format(new Date(dateTo), 'dd/MM/yyyy')}`]);
+    } else {
+      resumenData.push(['Período:', 'Todos los registros']);
+    }
+    
+    resumenData.push(
       [''],
       ['═══════════════════════════════════════════════════════'],
       ['RESUMEN DE PERSONAL'],
@@ -250,13 +456,13 @@ export default function TransportManagement() {
       ['Activos:', activos],
       ['Inactivos:', inactivos],
       [''],
-    ];
+    );
 
     const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
     wsResumen['!cols'] = [{ wch: 35 }, { wch: 20 }];
     XLSX.utils.book_append_sheet(workbook, wsResumen, 'Resumen');
 
-    const dataToExport = filteredAccessLogs.map(log => ({
+    const dataToExport = dataToFilter.map(log => ({
       'DNI': log.dni,
       'NOMBRE COMPLETO': log.fullName?.toUpperCase() || '',
       'EMPRESA': log.company?.toUpperCase() || '',
@@ -323,14 +529,41 @@ export default function TransportManagement() {
           <p className="text-muted-foreground">Gestión del personal de transporte y choferes.</p>
         </div>
       
-        <div className="flex gap-2 items-center">
-          <Button 
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
-            onClick={exportToExcel}
-            disabled={filteredAccessLogs.length === 0}
-          >
-            <Download className="mr-2 h-4 w-4" /> INFORME
-          </Button>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2 items-center">
+            <Label htmlFor="dateFrom" className="text-sm whitespace-nowrap">Desde:</Label>
+            <Input 
+              id="dateFrom"
+              type="date" 
+              value={dateFrom} 
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-40"
+            />
+            <Label htmlFor="dateTo" className="text-sm whitespace-nowrap">Hasta:</Label>
+            <Input 
+              id="dateTo"
+              type="date" 
+              value={dateTo} 
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-40"
+            />
+          </div>
+          <div className="flex gap-2 items-center justify-end">
+            <Button 
+              className="bg-green-600 hover:bg-green-700 text-white shadow-md"
+              onClick={exportToPDF}
+              disabled={filteredAccessLogs.length === 0}
+            >
+              <Download className="mr-2 h-4 w-4" /> PDF
+            </Button>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+              onClick={exportToExcel}
+              disabled={filteredAccessLogs.length === 0}
+            >
+              <Download className="mr-2 h-4 w-4" /> EXCEL
+            </Button>
+          </div>
         </div>
       </div>
 
