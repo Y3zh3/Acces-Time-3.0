@@ -15,8 +15,7 @@ function isWithinWorkingHours(workStart: string | null, workEnd: string | null):
 
 /**
  * Verifica si la entrada está dentro de la ventana permitida (Personal interno)
- * FLEXIBLE: Solo valida hora de ENTRADA con tolerancia de ±2 horas
- * No importa la hora de salida (pueden quedarse tiempo variable)
+ * ESTRICTO: ±5 minutos de la hora configurada manualmente
  */
 function isWithinEmployeeEntryWindow(workStart: string | null, workEnd: string | null): { allowed: boolean; windowStart: string; windowEnd: string } {
   if (!workStart) {
@@ -26,13 +25,13 @@ function isWithinEmployeeEntryWindow(workStart: string | null, workEnd: string |
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   
-  // Parsear SOLO hora de inicio (la de salida no importa)
+  // Parsear hora de entrada configurada manualmente
   const [startHour, startMinute] = workStart.split(':').map(Number);
   const startMinutes = startHour * 60 + startMinute;
   
-  // Ventana de entrada: ±2 horas de la hora de inicio configurada
-  let windowStartMinutes = startMinutes - 120; // 2 horas antes
-  let windowEndMinutes = startMinutes + 120;   // 2 horas después
+  // Ventana de entrada: ±5 minutos
+  let windowStartMinutes = startMinutes - 5;
+  let windowEndMinutes = startMinutes + 5;
   
   // Normalizar valores negativos o que exceden 24h
   if (windowStartMinutes < 0) {
@@ -66,8 +65,7 @@ function isWithinEmployeeEntryWindow(workStart: string | null, workEnd: string |
 
 /**
  * Verifica si la salida está dentro de la ventana permitida (Personal interno)
- * FLEXIBLE: Valida hora de salida configurada manualmente con ±3 horas de tolerancia
- * Permite flexibilidad porque pueden quedarse más o menos tiempo
+ * ESTRICTO: ±5 minutos de la hora configurada manualmente
  */
 function isWithinEmployeeExitWindow(workEnd: string | null): { allowed: boolean; windowStart: string; windowEnd: string } {
   if (!workEnd) {
@@ -81,9 +79,9 @@ function isWithinEmployeeExitWindow(workEnd: string | null): { allowed: boolean;
   const [endHour, endMinute] = workEnd.split(':').map(Number);
   const endMinutes = endHour * 60 + endMinute;
   
-  // Ventana de salida: ±3 horas de la hora de salida configurada
-  let windowStartMinutes = endMinutes - 180; // 3 horas antes
-  let windowEndMinutes = endMinutes + 180;   // 3 horas después
+  // Ventana de salida: ±5 minutos
+  let windowStartMinutes = endMinutes - 5;
+  let windowEndMinutes = endMinutes + 5;
   
   // Normalizar valores negativos o que exceden 24h
   if (windowStartMinutes < 0) {
