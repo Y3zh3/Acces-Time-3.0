@@ -625,12 +625,19 @@ export default function FaceRegistration() {
 
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase text-muted-foreground">
-                  DNI / Documento *
+                  DNI / Documento * (8 dígitos)
                 </Label>
                 <Input
-                  placeholder=""
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="12345678"
                   value={formData.dni}
-                  onChange={(e) => setFormData({...formData, dni: e.target.value})}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                    setFormData({...formData, dni: value});
+                  }}
+                  maxLength={8}
+                  pattern="\d{8}"
                   required
                 />
               </div>

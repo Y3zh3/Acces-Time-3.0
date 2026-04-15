@@ -431,13 +431,19 @@ export default function PersonalRegistrados() {
 
               {/* DNI */}
               <div className="grid gap-2">
-                <Label htmlFor="edit-dni">DNI *</Label>
+                <Label htmlFor="edit-dni">DNI * (8 dígitos)</Label>
                 <Input
                   id="edit-dni"
+                  type="tel"
+                  inputMode="numeric"
                   value={editFormData.dni || ''}
-                  onChange={(e) => setEditFormData({...editFormData, dni: e.target.value})}
-                  placeholder=""
-                  maxLength={20}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                    setEditFormData({...editFormData, dni: value});
+                  }}
+                  maxLength={8}
+                  pattern="\d{8}"
+                  placeholder="12345678"
                 />
               </div>
 

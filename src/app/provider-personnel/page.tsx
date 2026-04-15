@@ -528,12 +528,19 @@ export default function ProviderPersonnelManagement() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-dni">DNI</Label>
+              <Label htmlFor="edit-dni">DNI (8 dígitos)</Label>
               <Input
                 id="edit-dni"
+                type="tel"
+                inputMode="numeric"
                 value={editFormData.dni}
-                onChange={(e) => setEditFormData({...editFormData, dni: e.target.value})}
-                placeholder=""
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                  setEditFormData({...editFormData, dni: value});
+                }}
+                maxLength={8}
+                pattern="\d{8}"
+                placeholder="12345678"
               />
             </div>
             <div className="grid gap-2">
@@ -555,12 +562,19 @@ export default function ProviderPersonnelManagement() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit-phone">Teléfono</Label>
+              <Label htmlFor="edit-phone">Teléfono (9 dígitos)</Label>
               <Input
                 id="edit-phone"
+                type="tel"
+                inputMode="numeric"
                 value={editFormData.phone}
-                onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
-                placeholder=""
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                  setEditFormData({...editFormData, phone: value});
+                }}
+                maxLength={9}
+                pattern="\d{9}"
+                placeholder="987654321"
               />
             </div>
             
