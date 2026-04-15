@@ -1492,7 +1492,7 @@ export default function ProvidersPage() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
                   <div className="bg-purple-50 rounded-lg p-3 border border-purple-100">
                     <p className="text-2xl font-bold text-purple-600">{provider.providerPersonnel?.length || 0}</p>
@@ -1508,11 +1508,11 @@ export default function ProvidersPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t flex gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Button 
                     size="sm" 
                     variant="outline"
-                    className="flex-1"
+                    className="w-full bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700 hover:text-purple-800"
                     onClick={() => openPassDialog(provider.company, 'personal')}
                   >
                     <User className="h-4 w-4 mr-2" />
@@ -1520,7 +1520,8 @@ export default function ProvidersPage() {
                   </Button>
                   <Button 
                     size="sm"
-                    className="flex-1"
+                    variant="outline"
+                    className="w-full bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700 hover:text-orange-800"
                     onClick={() => openPassDialog(provider.company, 'driver')}
                   >
                     <Truck className="h-4 w-4 mr-2" />
