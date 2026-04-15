@@ -2,6 +2,64 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { saveBiometricImage } from '@/lib/file-storage';
 
+// Función para calcular distancia euclidiana entre dos descriptors
+function euclideanDistance(desc1: number[], desc2: number[]): number {
+  if (desc1.length !== desc2.length) return Infinity;
+  
+  let sum = 0;
+  for (let i = 0; i < desc1.length; i++) {
+    const diff = desc1[i] - desc2[i];
+    sum += diff * diff;
+  }
+  return Math.sqrt(sum);
+}
+
+// Función para verificar si el descriptor es similar a alguno existente
+async function checkDuplicateFace(newDescriptor: number[]): Promise<{ isDuplicate: boolean; matchName?: string; matchDni?: string }> {
+  const SIMILARITY_THRESHOLD = 0.6; // Umbral de similitud (más bajo = más estricto)
+  
+  try {
+    // Obtener todos los descriptors activos
+    const allBiometrics = await prisma.faceBiometric.findMany({
+      where: { isActive: true },
+      include: {
+        employee: true,
+        transportPersonnel: true,
+        providerPersonnel: true
+      }
+    });
+
+    // Comparar con cada descriptor existente
+    for (const biometric of allBiometrics) {
+      const existingDescriptor = JSON.parse(biometric.descriptor);
+      const distance = euclideanDistance(newDescriptor, existingDescriptor);
+      
+      if (distance < SIMILARITY_THRESHOLD) {
+        // Foto duplicada detectada
+        const matchName = biometric.employee?.fullName || 
+                         biometric.transportPersonnel?.fullName || 
+                         biometric.providerPersonnel?.fullName || 
+                         'Desconocido';
+        const matchDni = biometric.employee?.dni || 
+                        biometric.transportPersonnel?.dni || 
+                        biometric.providerPersonnel?.dni || 
+                        'Sin DNI';
+        
+        return { 
+          isDuplicate: true, 
+          matchName,
+          matchDni
+        };
+      }
+    }
+
+    return { isDuplicate: false };
+  } catch (error) {
+    console.error('Error verificando foto duplicada:', error);
+    return { isDuplicate: false }; // En caso de error, permitir el registro
+  }
+}
+
 // Mapear cargos de empresa a roles del sistema
 function mapCargoToRole(cargo: string): string {
   const roleMap: Record<string, string> = {
@@ -37,6 +95,18 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanDni = dni.toUpperCase();
+
+    // Verificar si la foto ya existe (detección de duplicados)
+    const duplicateCheck = await checkDuplicateFace(descriptor);
+    if (duplicateCheck.isDuplicate) {
+      return NextResponse.json(
+        { 
+          error: 'Esta foto facial ya está registrada',
+          details: `La foto coincide con ${duplicateCheck.matchName} (DNI: ${duplicateCheck.matchDni}). No se puede usar la misma foto para diferentes personas.`
+        },
+        { status: 409 }
+      );
+    }
 
     // Guardar foto en sistema de archivos
     const photoPath = await saveBiometricImage(photoDataUri, cleanDni);

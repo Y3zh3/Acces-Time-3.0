@@ -523,7 +523,12 @@ export default function ProviderPersonnelManagement() {
               <Input
                 id="edit-fullName"
                 value={editFormData.fullName}
-                onChange={(e) => setEditFormData({...editFormData, fullName: e.target.value})}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^a-zA-ZÁÉÍÓÚáéíóúÑñ\s]/g, '');
+                  setEditFormData({...editFormData, fullName: value});
+                }}
+                pattern="[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]+"
+                title="Solo se permiten letras y espacios"
                 placeholder=""
               />
             </div>
@@ -557,7 +562,12 @@ export default function ProviderPersonnelManagement() {
               <Input
                 id="edit-position"
                 value={editFormData.position}
-                onChange={(e) => setEditFormData({...editFormData, position: e.target.value})}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^a-zA-ZÁÉÍÓÚáéíóúÑñ\s]/g, '');
+                  setEditFormData({...editFormData, position: value});
+                }}
+                pattern="[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]*"
+                title="Solo se permiten letras y espacios"
                 placeholder=""
               />
             </div>

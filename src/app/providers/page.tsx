@@ -1242,7 +1242,12 @@ export default function ProvidersPage() {
                 <Input
                   id="passFullName"
                   value={passFormData.fullName}
-                  onChange={(e) => setPassFormData({ ...passFormData, fullName: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^a-zA-ZÁÉÍÓÚáéíóúÑñ\s]/g, '');
+                    setPassFormData({ ...passFormData, fullName: value });
+                  }}
+                  pattern="[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]+"
+                  title="Solo se permiten letras y espacios"
                   required
                 />
               </div>
@@ -1383,7 +1388,12 @@ export default function ProvidersPage() {
                     <Input
                       id="passPosition"
                       value={passFormData.position}
-                      onChange={(e) => setPassFormData({ ...passFormData, position: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^a-zA-ZÁÉÍÓÚáéíóúÑñ\s]/g, '');
+                        setPassFormData({ ...passFormData, position: value });
+                      }}
+                      pattern="[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]*"
+                      title="Solo se permiten letras y espacios"
                     />
                   </div>
 

@@ -618,7 +618,12 @@ export default function FaceRegistration() {
                 <Input
                   placeholder=""
                   value={formData.fullName}
-                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^a-zA-ZÁÉÍÓÚáéíóúÑñ\s]/g, '');
+                    setFormData({...formData, fullName: value});
+                  }}
+                  pattern="[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]+"
+                  title="Solo se permiten letras y espacios"
                   required
                 />
               </div>
