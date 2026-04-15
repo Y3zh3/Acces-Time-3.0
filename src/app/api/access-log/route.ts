@@ -2,13 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 /**
- * Obtiene la fecha/hora actual en la zona horaria de Perú (UTC-5)
+ * Obtiene la fecha/hora actual del sistema
+ * PostgreSQL guardará como UTC automáticamente
+ * La UI convertirá a zona horaria de Perú al mostrar
  */
-function getPeruTime(): Date {
+function getCurrentTime(): Date {
+  return new Date();
+}
+
+/**
+ * Obtiene hora/minutos actuales en zona horaria de Perú para validaciones
+ */
+function getPeruTimeComponents(): { hours: number; minutes: number } {
   const now = new Date();
-  // Perú está en UTC-5 (sin horario de verano)
-  const peruTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
-  return peruTime;
+  const peruTimeString = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Lima',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(now);
+  
+  const [hours, minutes] = peruTimeString.split(':').map(Number);
+  return { hours, minutes };
 }
 
 /**
@@ -17,8 +32,8 @@ function getPeruTime(): Date {
 function isWithinWorkingHours(workStart: string | null, workEnd: string | null): boolean {
   if (!workStart || !workEnd) return true; // Si no hay horario configurado, se permite
 
-  const now = getPeruTime();
-  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  const { hours, minutes } = getPeruTimeComponents();
+  const currentTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   
   return currentTime >= workStart && currentTime <= workEnd;
 }
@@ -32,8 +47,8 @@ function isWithinEmployeeEntryWindow(workStart: string | null, workEnd: string |
     return { allowed: true, windowStart: 'N/A', windowEnd: 'N/A' };
   }
 
-  const now = getPeruTime();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const { hours, minutes } = getPeruTimeComponents();
+  const currentMinutes = hours * 60 + minutes;
   
   // Parsear hora de entrada configurada manualmente
   const [startHour, startMinute] = workStart.split(':').map(Number);
@@ -82,8 +97,8 @@ function isWithinEmployeeExitWindow(workEnd: string | null): { allowed: boolean;
     return { allowed: true, windowStart: 'N/A', windowEnd: 'N/A' };
   }
 
-  const now = getPeruTime();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const { hours, minutes } = getPeruTimeComponents();
+  const currentMinutes = hours * 60 + minutes;
   
   // Parsear hora de salida configurada manualmente
   const [endHour, endMinute] = workEnd.split(':').map(Number);
@@ -134,8 +149,8 @@ function isWithinProviderEntryWindow(entryDateTime: Date | null): { allowed: boo
     return { allowed: true, windowStart: 'N/A', windowEnd: 'N/A' };
   }
 
-  const now = getPeruTime();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const { hours, minutes } = getPeruTimeComponents();
+  const currentMinutes = hours * 60 + minutes;
   
   // Extraer hora de la fecha programada
   const programmedHour = entryDateTime.getHours();
@@ -168,8 +183,8 @@ function isWithinProviderEntryWindow(entryDateTime: Date | null): { allowed: boo
 function isWithinEntryWindow(workStart: string | null): boolean {
   if (!workStart) return true; // Si no hay horario configurado, se permite
 
-  const now = getPeruTime();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const { hours, minutes } = getPeruTimeComponents();
+  const currentMinutes = hours * 60 + minutes;
   
   // Parsear hora de inicio
   const [startHour, startMinute] = workStart.split(':').map(Number);
@@ -201,7 +216,7 @@ function calculateEntryWindowEnd(workStart: string | null): string {
  * Busca un pase temporal válido para un DNI en la fecha/hora actual
  */
 async function findValidTemporaryPass(dni: string): Promise<any | null> {
-  const now = getPeruTime();
+  const now = getCurrentTime();
   
   try {
     const pass = await prisma.temporaryPass.findFirst({
@@ -235,7 +250,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const now = getPeruTime();
+    const now = getCurrentTime();
     let accessStatus = 'Aprobado';
     let accessType: 'success' | 'warning' | 'critical' = 'success';
     let workStart: string | null = null;

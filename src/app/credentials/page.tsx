@@ -225,7 +225,8 @@ export default function PersonalManagement() {
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: false
       }),
       'HORA SALIDA': log.exitTime ? new Date(log.exitTime).toLocaleString('es-PE', {
         timeZone: 'America/Lima',
@@ -233,7 +234,8 @@ export default function PersonalManagement() {
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: false
       }) : 'En planta',
       'ROL SISTEMA': log.role.toUpperCase(),
     }));
@@ -402,10 +404,12 @@ export default function PersonalManagement() {
                     <ArrowDownCircle className="h-4 w-4 text-green-500" />
                     {new Date(log.entryTime).toLocaleString('es-PE', {
                       timeZone: 'America/Lima',
+                      year: 'numeric',
                       day: '2-digit',
                       month: '2-digit',
                       hour: '2-digit',
-                      minute: '2-digit'
+                      minute: '2-digit',
+                      hour12: false
                     })}
                   </div>
                 </TableCell>
@@ -415,10 +419,12 @@ export default function PersonalManagement() {
                       <ArrowUpCircle className="h-4 w-4 text-orange-500" />
                       {new Date(log.exitTime).toLocaleString('es-PE', {
                         timeZone: 'America/Lima',
+                        year: 'numeric',
                         day: '2-digit',
                         month: '2-digit',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        hour12: false
                       })}
                     </div>
                   ) : (
