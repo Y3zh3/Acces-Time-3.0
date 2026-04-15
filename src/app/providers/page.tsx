@@ -978,15 +978,17 @@ export default function ProvidersPage() {
         img.onload = async () => {
           console.log('🖼️ Imagen cargada:', img.width, 'x', img.height)
           
-          // Dibujar en canvas
+          // Dibujar en canvas (redimensionar a max 800px para reducir tamaño)
           if (!canvasRef.current) return
           const canvas = canvasRef.current
-          canvas.width = img.width
-          canvas.height = img.height
+          const MAX_SIZE = 800
+          const ratio = Math.min(MAX_SIZE / img.width, MAX_SIZE / img.height, 1)
+          canvas.width = Math.round(img.width * ratio)
+          canvas.height = Math.round(img.height * ratio)
           const ctx = canvas.getContext('2d', { willReadFrequently: true })
           if (!ctx) return
           
-          ctx.drawImage(img, 0, 0)
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
           
           // Extraer descriptor facial
           console.log('🔍 Extrayendo descriptor facial...')
@@ -1005,10 +1007,14 @@ export default function ProvidersPage() {
           
           console.log('✅ Descriptor extraído:', descriptor.length, 'valores')
           
+          // Comprimir imagen a JPEG 70% para reducir tamaño de envío
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
+          console.log('📦 Tamaño comprimido:', Math.round(compressedBase64.length / 1024), 'KB')
+          
           // Guardar descriptor
           setCapturedDescriptor(descriptor)
-          setPassPhoto(base64)
-          setPhotoPreview(base64)
+          setPassPhoto(compressedBase64)
+          setPhotoPreview(compressedBase64)
           
           toast({
             title: "✓ Foto y rostro capturados",
