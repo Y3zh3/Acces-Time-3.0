@@ -88,6 +88,8 @@ export default function PersonalManagement() {
   const [loading, setLoading] = useState(true)
   const [historialDialogOpen, setHistorialDialogOpen] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState<{ dni: string; fullName: string } | null>(null)
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
   const { toast } = useToast()
   const permissions = usePermissions()
 
@@ -177,25 +179,83 @@ export default function PersonalManagement() {
   }
 
   const exportToExcel = () => {
+    // Validar filtros de fecha
+    if (dateFrom && dateTo) {
+      const from = new Date(dateFrom);
+      const to = new Date(dateTo);
+      
+      if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+        toast({
+          variant: 'destructive',
+          title: 'Fechas inválidas',
+          description: 'Los filtros de fecha no son válidos. Verifica el formato.',
+        });
+        return;
+      }
+      
+      if (to < from) {
+        toast({
+          variant: 'destructive',
+          title: 'Rango de fechas inválido',
+          description: 'La fecha "Hasta" debe ser posterior a la fecha "Desde".',
+        });
+        return;
+      }
+    }
+
+    // Filtrar por rango de fechas si se especificó
+    let dataToFilter = filteredAccessLogs;
+    if (dateFrom || dateTo) {
+      dataToFilter = filteredAccessLogs.filter(log => {
+        const logDate = new Date(log.entryTime);
+        logDate.setHours(0, 0, 0, 0);
+        
+        if (dateFrom && dateTo) {
+          const from = new Date(dateFrom);
+          const to = new Date(dateTo);
+          to.setHours(23, 59, 59, 999);
+          return logDate >= from && logDate <= to;
+        } else if (dateFrom) {
+          const from = new Date(dateFrom);
+          return logDate >= from;
+        } else if (dateTo) {
+          const to = new Date(dateTo);
+          to.setHours(23, 59, 59, 999);
+          return logDate <= to;
+        }
+        return true;
+      });
+    }
+
+    if (dataToFilter.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Sin registros',
+        description: 'No hay registros en el rango de fechas seleccionado.',
+      });
+      return;
+    }
+
     // Crear workbook
     const workbook = XLSX.utils.book_new();
     
     const fechaStr = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: es });
     
-    const totalRegistros = filteredAccessLogs.length;
-    const entradas = filteredAccessLogs.length;
-    const salidas = filteredAccessLogs.filter(log => log.exitTime !== null).length;
-    const aprobados = filteredAccessLogs.filter(log => log.status === 'Aprobado').length;
-    const fueraHorario = filteredAccessLogs.filter(log => log.status.includes('Fuera de Horario')).length;
+    const totalRegistros = dataToFilter.length;
+    const entradas = dataToFilter.length;
+    const salidas = dataToFilter.filter(log => log.exitTime !== null).length;
+    const aprobados = dataToFilter.filter(log => log.status === 'Aprobado').length;
+    const fueraHorario = dataToFilter.filter(log => log.status.includes('Fuera de Horario')).length;
     
     // Personas únicas que ingresaron
-    const personasUnicas = new Set(filteredAccessLogs.map(log => log.userDni)).size;
+    const personasUnicas = new Set(dataToFilter.map(log => log.userDni)).size;
 
     const resumenData = [
       ['INFORME DE ACCESOS - GESTIÓN DE PERSONAL'],
       [''],
       ['Fecha generación:', fechaStr],
       ['Generado:', new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' })],
+      dateFrom && dateTo ? ['Período:', `${format(new Date(dateFrom), 'dd/MM/yyyy')} - ${format(new Date(dateTo), 'dd/MM/yyyy')}`] : ['Período:', 'Todos los registros'],
       [''],
       ['═══════════════════════════════════════════════════════'],
       ['RESUMEN HISTÓRICO'],
@@ -215,7 +275,7 @@ export default function PersonalManagement() {
     XLSX.utils.book_append_sheet(workbook, wsResumen, 'Resumen');
 
     // Hoja de detalle
-    const dataToExport = filteredAccessLogs.map(log => ({
+    const dataToExport = dataToFilter.map(log => ({
       'DNI': log.userDni,
       'NOMBRE COMPLETO': log.userName.toUpperCase(),
       'CARGO': getCargoLabel(log.employee?.position) || log.employee?.role || log.role,
@@ -266,15 +326,72 @@ export default function PersonalManagement() {
   }
 
   const exportToPDF = () => {
+    // Validar filtros de fecha (igual que en Excel)
+    if (dateFrom && dateTo) {
+      const from = new Date(dateFrom);
+      const to = new Date(dateTo);
+      
+      if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+        toast({
+          variant: 'destructive',
+          title: 'Fechas inválidas',
+          description: 'Los filtros de fecha no son válidos. Verifica el formato.',
+        });
+        return;
+      }
+      
+      if (to < from) {
+        toast({
+          variant: 'destructive',
+          title: 'Rango de fechas inválido',
+          description: 'La fecha "Hasta" debe ser posterior a la fecha "Desde".',
+        });
+        return;
+      }
+    }
+
+    // Filtrar por rango de fechas si se especificó
+    let dataToFilter = filteredAccessLogs;
+    if (dateFrom || dateTo) {
+      dataToFilter = filteredAccessLogs.filter(log => {
+        const logDate = new Date(log.entryTime);
+        logDate.setHours(0, 0, 0, 0);
+        
+        if (dateFrom && dateTo) {
+          const from = new Date(dateFrom);
+          const to = new Date(dateTo);
+          to.setHours(23, 59, 59, 999);
+          return logDate >= from && logDate <= to;
+        } else if (dateFrom) {
+          const from = new Date(dateFrom);
+          return logDate >= from;
+        } else if (dateTo) {
+          const to = new Date(dateTo);
+          to.setHours(23, 59, 59, 999);
+          return logDate <= to;
+        }
+        return true;
+      });
+    }
+
+    if (dataToFilter.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Sin registros',
+        description: 'No hay registros en el rango de fechas seleccionado.',
+      });
+      return;
+    }
+
     const doc = new jsPDF();
     const fechaStr = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: es });
     
-    const totalRegistros = filteredAccessLogs.length;
-    const entradas = filteredAccessLogs.length;
-    const salidas = filteredAccessLogs.filter(log => log.exitTime !== null).length;
-    const aprobados = filteredAccessLogs.filter(log => log.status === 'Aprobado').length;
-    const fueraHorario = filteredAccessLogs.filter(log => log.status.includes('Fuera de Horario')).length;
-    const personasUnicas = new Set(filteredAccessLogs.map(log => log.userDni)).size;
+    const totalRegistros = dataToFilter.length;
+    const entradas = dataToFilter.length;
+    const salidas = dataToFilter.filter(log => log.exitTime !== null).length;
+    const aprobados = dataToFilter.filter(log => log.status === 'Aprobado').length;
+    const fueraHorario = dataToFilter.filter(log => log.status.includes('Fuera de Horario')).length;
+    const personasUnicas = new Set(dataToFilter.map(log => log.userDni)).size;
 
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
@@ -284,21 +401,27 @@ export default function PersonalManagement() {
     doc.setFont('helvetica', 'normal');
     doc.text(`Fecha generación: ${fechaStr}`, 14, 25);
     doc.text(`Generado: ${new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' })}`, 14, 30);
+    
+    if (dateFrom && dateTo) {
+      doc.text(`Período: ${format(new Date(dateFrom), 'dd/MM/yyyy')} - ${format(new Date(dateTo), 'dd/MM/yyyy')}`, 14, 35);
+    } else {
+      doc.text('Período: Todos los registros', 14, 35);
+    }
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('RESUMEN HISTÓRICO', 14, 40);
+    doc.text('RESUMEN HISTÓRICO', 14, 45);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Total de Registros: ${totalRegistros}`, 14, 48);
-    doc.text(`Personas Únicas: ${personasUnicas}`, 14, 53);
-    doc.text(`Entradas: ${entradas}`, 14, 58);
-    doc.text(`Salidas: ${salidas}`, 14, 63);
-    doc.text(`Accesos Aprobados: ${aprobados}`, 14, 68);
-    doc.text(`Fuera de Horario: ${fueraHorario}`, 14, 73);
+    doc.text(`Total de Registros: ${totalRegistros}`, 14, 53);
+    doc.text(`Personas Únicas: ${personasUnicas}`, 14, 58);
+    doc.text(`Entradas: ${entradas}`, 14, 63);
+    doc.text(`Salidas: ${salidas}`, 14, 68);
+    doc.text(`Accesos Aprobados: ${aprobados}`, 14, 73);
+    doc.text(`Fuera de Horario: ${fueraHorario}`, 14, 78);
 
-    const tableData = filteredAccessLogs.map(log => [
+    const tableData = dataToFilter.map(log => [
       log.userDni,
       log.userName.toUpperCase(),
       getCargoLabel(log.employee?.position) || log.employee?.role || log.role,
@@ -361,21 +484,41 @@ export default function PersonalManagement() {
             <p className="text-muted-foreground">Registros completos de entrada y salida del personal.</p>
           </div>
         
-          <div className="flex gap-2 items-center">
-            <Button 
-              className="bg-green-600 hover:bg-green-700 text-white shadow-md"
-              onClick={exportToPDF}
-              disabled={filteredAccessLogs.length === 0}
-            >
-              <Download className="mr-2 h-4 w-4" /> PDF
-            </Button>
-            <Button 
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
-              onClick={exportToExcel}
-              disabled={filteredAccessLogs.length === 0}
-            >
-              <Download className="mr-2 h-4 w-4" /> EXCEL
-            </Button>
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2 items-center">
+              <Label htmlFor="dateFrom" className="text-sm whitespace-nowrap">Desde:</Label>
+              <Input 
+                id="dateFrom"
+                type="date" 
+                value={dateFrom} 
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-40"
+              />
+              <Label htmlFor="dateTo" className="text-sm whitespace-nowrap">Hasta:</Label>
+              <Input 
+                id="dateTo"
+                type="date" 
+                value={dateTo} 
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-40"
+              />
+            </div>
+            <div className="flex gap-2 items-center justify-end">
+              <Button 
+                className="bg-green-600 hover:bg-green-700 text-white shadow-md"
+                onClick={exportToPDF}
+                disabled={filteredAccessLogs.length === 0}
+              >
+                <Download className="mr-2 h-4 w-4" /> PDF
+              </Button>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                onClick={exportToExcel}
+                disabled={filteredAccessLogs.length === 0}
+              >
+                <Download className="mr-2 h-4 w-4" /> EXCEL
+              </Button>
+            </div>
           </div>
         </div>
 
