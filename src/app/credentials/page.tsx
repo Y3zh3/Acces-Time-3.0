@@ -24,6 +24,8 @@ import {
   ArrowUpCircle
 } from "lucide-react"
 import * as XLSX from 'xlsx'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { HistorialAccesosDialog } from "@/components/historial-accesos-dialog"
@@ -263,6 +265,93 @@ export default function PersonalManagement() {
     });
   }
 
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    const fechaStr = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: es });
+    
+    const totalRegistros = filteredAccessLogs.length;
+    const entradas = filteredAccessLogs.length;
+    const salidas = filteredAccessLogs.filter(log => log.exitTime !== null).length;
+    const aprobados = filteredAccessLogs.filter(log => log.status === 'Aprobado').length;
+    const fueraHorario = filteredAccessLogs.filter(log => log.status.includes('Fuera de Horario')).length;
+    const personasUnicas = new Set(filteredAccessLogs.map(log => log.userDni)).size;
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INFORME DE ACCESOS - GESTIÓN DE PERSONAL', 105, 15, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha generación: ${fechaStr}`, 14, 25);
+    doc.text(`Generado: ${new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' })}`, 14, 30);
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RESUMEN HISTÓRICO', 14, 40);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total de Registros: ${totalRegistros}`, 14, 48);
+    doc.text(`Personas Únicas: ${personasUnicas}`, 14, 53);
+    doc.text(`Entradas: ${entradas}`, 14, 58);
+    doc.text(`Salidas: ${salidas}`, 14, 63);
+    doc.text(`Accesos Aprobados: ${aprobados}`, 14, 68);
+    doc.text(`Fuera de Horario: ${fueraHorario}`, 14, 73);
+
+    const tableData = filteredAccessLogs.map(log => [
+      log.userDni,
+      log.userName.toUpperCase(),
+      getCargoLabel(log.employee?.position) || log.employee?.role || log.role,
+      log.employee?.department || '-',
+      log.status.toUpperCase(),
+      new Date(log.entryTime).toLocaleString('es-PE', {
+        timeZone: 'America/Lima',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }),
+      log.exitTime ? new Date(log.exitTime).toLocaleString('es-PE', {
+        timeZone: 'America/Lima',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }) : 'En planta'
+    ]);
+
+    autoTable(doc, {
+      startY: 80,
+      head: [['DNI', 'NOMBRE', 'CARGO', 'ÁREA', 'ESTADO', 'ENTRADA', 'SALIDA']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [37, 99, 235], fontSize: 8 },
+      bodyStyles: { fontSize: 7 },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 25 },
+        4: { cellWidth: 30 },
+        5: { cellWidth: 30 },
+        6: { cellWidth: 30 }
+      },
+      margin: { left: 14, right: 14 }
+    });
+
+    const fileName = `Informe_Accesos_Personal_${format(new Date(), 'dd-MM-yyyy')}.pdf`;
+    doc.save(fileName);
+
+    toast({
+      title: '📄 Informe PDF Generado',
+      description: `${fileName} - ${totalRegistros} registros`,
+    });
+  }
+
   return (
     <ProtectedPage requireAny={['canManageEmployees', 'isAdmin', 'isSupervisor']}>
       <div className="space-y-8">
@@ -274,11 +363,18 @@ export default function PersonalManagement() {
         
           <div className="flex gap-2 items-center">
             <Button 
+              className="bg-green-600 hover:bg-green-700 text-white shadow-md"
+              onClick={exportToPDF}
+              disabled={filteredAccessLogs.length === 0}
+            >
+              <Download className="mr-2 h-4 w-4" /> PDF
+            </Button>
+            <Button 
               className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
               onClick={exportToExcel}
               disabled={filteredAccessLogs.length === 0}
             >
-              <Download className="mr-2 h-4 w-4" /> INFORME
+              <Download className="mr-2 h-4 w-4" /> EXCEL
             </Button>
           </div>
         </div>
