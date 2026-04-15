@@ -1,0 +1,9 @@
+# Ignorar todas las fotos pero mantener las carpetas
+**/*.jpg
+**/*.jpeg
+**/*.png
+**/*.gif
+**/*.webp
+
+# Mantener la estructura de carpetas
+!.gitignore
