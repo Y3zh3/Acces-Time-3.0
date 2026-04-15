@@ -240,7 +240,7 @@ export default function TransportManagement() {
       ['INFORME DE PERSONAL DE TRANSPORTE'],
       [''],
       ['Fecha generación:', fechaStr],
-      ['Generado:', new Date().toLocaleString('es-AR')],
+      ['Generado:', new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' })],
       [''],
       ['═══════════════════════════════════════════════════════'],
       ['RESUMEN DE PERSONAL'],
@@ -263,28 +263,32 @@ export default function TransportManagement() {
       'VEHÍCULO': log.vehicle?.toUpperCase() || '-',
       'PATENTE': log.licensePlate?.toUpperCase() || '-',
       'ESTADO': log.status?.toUpperCase() || '',
-      'FECHA/HORA INGRESO': log.actualEntryDateTime ? new Date(log.actualEntryDateTime).toLocaleString('es-AR', {
+      'FECHA/HORA INGRESO': log.actualEntryDateTime ? new Date(log.actualEntryDateTime).toLocaleString('es-PE', {
+        timeZone: 'America/Lima',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       }) : '-',
-      'FECHA/HORA SALIDA': log.actualExitDateTime ? new Date(log.actualExitDateTime).toLocaleString('es-AR', {
+      'FECHA/HORA SALIDA': log.actualExitDateTime ? new Date(log.actualExitDateTime).toLocaleString('es-PE', {
+        timeZone: 'America/Lima',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       }) : '-',
-      'ENTRADA PROGRAMADA': log.entryDateTime ? new Date(log.entryDateTime).toLocaleString('es-AR', {
+      'ENTRADA PROGRAMADA': log.entryDateTime ? new Date(log.entryDateTime).toLocaleString('es-PE', {
+        timeZone: 'America/Lima',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       }) : '-',
-      'SALIDA PROGRAMADA': log.exitDateTime ? new Date(log.exitDateTime).toLocaleString('es-AR', {
+      'SALIDA PROGRAMADA': log.exitDateTime ? new Date(log.exitDateTime).toLocaleString('es-PE', {
+        timeZone: 'America/Lima',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -436,7 +440,8 @@ export default function TransportManagement() {
                   </Badge>
                 </TableCell>
                 <TableCell className="font-mono text-xs">
-                  {log.actualEntryDateTime ? new Date(log.actualEntryDateTime).toLocaleString('es-AR', {
+                  {log.actualEntryDateTime ? new Date(log.actualEntryDateTime).toLocaleString('es-PE', {
+                    timeZone: 'America/Lima',
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric',
@@ -445,7 +450,8 @@ export default function TransportManagement() {
                   }) : '-'}
                 </TableCell>
                 <TableCell className="font-mono text-xs">
-                  {log.actualExitDateTime ? new Date(log.actualExitDateTime).toLocaleString('es-AR', {
+                  {log.actualExitDateTime ? new Date(log.actualExitDateTime).toLocaleString('es-PE', {
+                    timeZone: 'America/Lima',
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric',
@@ -454,7 +460,8 @@ export default function TransportManagement() {
                   }) : '-'}
                 </TableCell>
                 <TableCell className="font-mono text-xs">
-                  {log.entryDateTime ? new Date(log.entryDateTime).toLocaleString('es-AR', {
+                  {log.entryDateTime ? new Date(log.entryDateTime).toLocaleString('es-PE', {
+                    timeZone: 'America/Lima',
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric',
@@ -463,7 +470,8 @@ export default function TransportManagement() {
                   }) : '-'}
                 </TableCell>
                 <TableCell className="font-mono text-xs">
-                  {log.exitDateTime ? new Date(log.exitDateTime).toLocaleString('es-AR', {
+                  {log.exitDateTime ? new Date(log.exitDateTime).toLocaleString('es-PE', {
+                    timeZone: 'America/Lima',
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric',

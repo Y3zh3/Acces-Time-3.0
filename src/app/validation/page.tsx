@@ -267,7 +267,7 @@ export default function AccessValidation() {
                     
                     <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-4">
                       <Clock className="h-3 w-3" />
-                      <span>{new Date().toLocaleString('es-AR')}</span>
+                      <span>{new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' })}</span>
                     </div>
                   </div>
                 </CardContent>

@@ -1718,7 +1718,8 @@ export default function ProvidersPage() {
                           </td>
                           <td className="p-3 text-sm">
                             {person.entryDateTime 
-                              ? new Date(person.entryDateTime).toLocaleString('es-AR', {
+                              ? new Date(person.entryDateTime).toLocaleString('es-PE', {
+                                  timeZone: 'America/Lima',
                                   year: 'numeric',
                                   month: '2-digit',
                                   day: '2-digit',
@@ -1729,7 +1730,8 @@ export default function ProvidersPage() {
                           </td>
                           <td className="p-3 text-sm">
                             {person.exitDateTime 
-                              ? new Date(person.exitDateTime).toLocaleString('es-AR', {
+                              ? new Date(person.exitDateTime).toLocaleString('es-PE', {
+                                  timeZone: 'America/Lima',
                                   year: 'numeric',
                                   month: '2-digit',
                                   day: '2-digit',
@@ -1785,7 +1787,8 @@ export default function ProvidersPage() {
                           </td>
                           <td className="p-3 text-sm">
                             {person.entryDateTime 
-                              ? new Date(person.entryDateTime).toLocaleString('es-AR', {
+                              ? new Date(person.entryDateTime).toLocaleString('es-PE', {
+                                  timeZone: 'America/Lima',
                                   year: 'numeric',
                                   month: '2-digit',
                                   day: '2-digit',
@@ -1796,7 +1799,8 @@ export default function ProvidersPage() {
                           </td>
                           <td className="p-3 text-sm">
                             {person.exitDateTime 
-                              ? new Date(person.exitDateTime).toLocaleString('es-AR', {
+                              ? new Date(person.exitDateTime).toLocaleString('es-PE', {
+                                  timeZone: 'America/Lima',
                                   year: 'numeric',
                                   month: '2-digit',
                                   day: '2-digit',
