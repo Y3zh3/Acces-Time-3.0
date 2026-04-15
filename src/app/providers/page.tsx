@@ -1510,22 +1510,20 @@ export default function ProvidersPage() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <Button 
-                    size="sm" 
                     variant="outline"
-                    className="w-full bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700 hover:text-purple-800"
+                    className="w-full h-10 bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700 hover:text-purple-800 flex items-center justify-center gap-2 text-sm font-medium"
                     onClick={() => openPassDialog(provider.company, 'personal')}
                   >
-                    <User className="h-4 w-4 mr-2" />
-                    Pase Personal
+                    <User className="h-4 w-4" />
+                    <span>Pase Personal</span>
                   </Button>
                   <Button 
-                    size="sm"
                     variant="outline"
-                    className="w-full bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700 hover:text-orange-800"
+                    className="w-full h-10 bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700 hover:text-orange-800 flex items-center justify-center gap-2 text-sm font-medium"
                     onClick={() => openPassDialog(provider.company, 'driver')}
                   >
-                    <Truck className="h-4 w-4 mr-2" />
-                    Pase Chofer
+                    <Truck className="h-4 w-4" />
+                    <span>Pase Chofer</span>
                   </Button>
                 </div>
               </CardContent>
