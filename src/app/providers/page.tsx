@@ -762,6 +762,41 @@ export default function ProvidersPage() {
       return
     }
 
+    // Validar DNI (exactamente 8 dígitos)
+    if (!/^\d{8}$/.test(passFormData.dni)) {
+      toast({
+        variant: "destructive",
+        title: "DNI inválido",
+        description: "El DNI debe tener exactamente 8 dígitos"
+      })
+      return
+    }
+
+    // Validar teléfono si es personal (exactamente 9 dígitos)
+    if (passType === 'personnel' && passFormData.phone && !/^\d{9}$/.test(passFormData.phone)) {
+      toast({
+        variant: "destructive",
+        title: "Teléfono inválido",
+        description: "El teléfono debe tener exactamente 9 dígitos"
+      })
+      return
+    }
+
+    // Validar que fecha de salida sea posterior a fecha de entrada
+    if (passFormData.entryDate && passFormData.exitDate) {
+      const entryDateTime = new Date(`${passFormData.entryDate}T${passFormData.entryTime || '00:00'}`);
+      const exitDateTime = new Date(`${passFormData.exitDate}T${passFormData.exitTime || '23:59'}`);
+      
+      if (exitDateTime <= entryDateTime) {
+        toast({
+          variant: "destructive",
+          title: "Fechas inválidas",
+          description: "La fecha de salida debe ser posterior a la fecha de entrada"
+        })
+        return
+      }
+    }
+
     // Validar que si hay foto nueva, tenga descriptor
     if (passPhoto && !capturedDescriptor && !isEditMode) {
       console.error('❌ Foto sin descriptor detectado')
@@ -1213,11 +1248,17 @@ export default function ProvidersPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="passDni">DNI *</Label>
+                <Label htmlFor="passDni">DNI * (8 dígitos)</Label>
                 <Input
                   id="passDni"
                   value={passFormData.dni}
-                  onChange={(e) => setPassFormData({ ...passFormData, dni: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                    setPassFormData({ ...passFormData, dni: value });
+                  }}
+                  maxLength={8}
+                  pattern="\d{8}"
+                  placeholder="12345678"
                   required
                 />
               </div>
@@ -1270,8 +1311,12 @@ export default function ProvidersPage() {
                     type="date"
                     value={passFormData.exitDate}
                     onChange={(e) => setPassFormData({ ...passFormData, exitDate: e.target.value })}
+                    min={passFormData.entryDate || undefined}
                     required
                   />
+                  {passFormData.entryDate && passFormData.exitDate && passFormData.exitDate < passFormData.entryDate && (
+                    <p className="text-xs text-red-600">⚠️ La fecha de salida debe ser posterior a la entrada</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -1341,11 +1386,17 @@ export default function ProvidersPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="passPhone">Teléfono</Label>
+                    <Label htmlFor="passPhone">Teléfono (9 dígitos)</Label>
                     <Input
                       id="passPhone"
                       value={passFormData.phone}
-                      onChange={(e) => setPassFormData({ ...passFormData, phone: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                        setPassFormData({ ...passFormData, phone: value });
+                      }}
+                      maxLength={9}
+                      pattern="\d{9}"
+                      placeholder="987654321"
                     />
                   </div>
                 </>
