@@ -418,7 +418,6 @@ export default function PersonalRegistrados() {
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
-              {/* Nombre Completo */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-fullName">Nombre Completo *</Label>
                 <Input
@@ -429,7 +428,6 @@ export default function PersonalRegistrados() {
                 />
               </div>
 
-              {/* DNI */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-dni">DNI * (8 dígitos)</Label>
                 <Input
@@ -447,7 +445,6 @@ export default function PersonalRegistrados() {
                 />
               </div>
 
-              {/* Cargo */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-position">Cargo</Label>
                 <Input
@@ -458,7 +455,6 @@ export default function PersonalRegistrados() {
                 />
               </div>
 
-              {/* Área/Departamento */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-department">Área/Departamento</Label>
                 <Input
@@ -469,7 +465,6 @@ export default function PersonalRegistrados() {
                 />
               </div>
 
-              {/* Sede */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-location">Sede</Label>
                 <Select 
@@ -487,7 +482,6 @@ export default function PersonalRegistrados() {
                 </Select>
               </div>
 
-              {/* Vencimiento de Contrato */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-contractExpiry">Vencimiento de Contrato</Label>
                 <Input
@@ -498,7 +492,6 @@ export default function PersonalRegistrados() {
                 />
               </div>
 
-              {/* Hora de Entrada */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-workStartTime">Hora de Entrada</Label>
                 <Input
@@ -509,7 +502,6 @@ export default function PersonalRegistrados() {
                 />
               </div>
 
-              {/* Hora de Salida */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-workEndTime">Hora de Salida</Label>
                 <Input
@@ -520,7 +512,6 @@ export default function PersonalRegistrados() {
                 />
               </div>
 
-              {/* Email */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-email">Email</Label>
                 <Input
@@ -532,7 +523,6 @@ export default function PersonalRegistrados() {
                 />
               </div>
 
-              {/* Estado */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-status">Estado</Label>
                 <Select 
