@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+function normalizeUsername(username: string): string {
+  return username.trim().toUpperCase();
+}
+
 // GET - Obtener todos los usuarios del sistema (con filtro opcional por rol)
 export async function GET(request: NextRequest) {
   try {
@@ -41,9 +45,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { username, password, fullName, role, email, status } = body;
+    const normalizedUsername = normalizeUsername(username || "");
+    const normalizedFullName = (fullName || "").trim().toUpperCase();
 
     // Validaciones
-    if (!username || !password || !fullName || !role) {
+    if (!normalizedUsername || !password || !normalizedFullName || !role) {
       return NextResponse.json(
         { error: "Faltan campos requeridos: usuario, contraseña, nombre completo y rol" },
         { status: 400 }
@@ -60,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar si el usuario ya existe
     const existingUser = await prisma.systemUser.findUnique({
-      where: { username: username.toUpperCase() },
+      where: { username: normalizedUsername },
     });
 
     if (existingUser) {
@@ -73,9 +79,9 @@ export async function POST(request: NextRequest) {
     // Crear el usuario (en producción, hashear la contraseña)
     const newUser = await prisma.systemUser.create({
       data: {
-        username: username.toUpperCase(),
+        username: normalizedUsername,
         password, // TODO: Hashear con bcrypt en producción
-        fullName: fullName.toUpperCase(),
+        fullName: normalizedFullName,
         role,
         email: email || null,
         status: status || "Activo",
@@ -91,7 +97,13 @@ export async function POST(request: NextRequest) {
       status: newUser.status,
       createdAt: newUser.createdAt,
     }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      return NextResponse.json(
+        { error: "Ya existe un usuario con ese nombre de usuario" },
+        { status: 409 }
+      );
+    }
     console.error("Error creating system user:", error);
     return NextResponse.json(
       { error: "Error al crear usuario" },
@@ -105,6 +117,8 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const { id, username, password, fullName, role, email, status } = body;
+    const normalizedUsername = username ? normalizeUsername(username) : undefined;
+    const normalizedFullName = fullName ? fullName.trim().toUpperCase() : undefined;
 
     if (!id) {
       return NextResponse.json(
@@ -126,9 +140,9 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verificar username único si se cambió
-    if (username && username !== existingUser.username) {
+    if (normalizedUsername && normalizedUsername !== existingUser.username) {
       const userWithSameUsername = await prisma.systemUser.findUnique({
-        where: { username },
+        where: { username: normalizedUsername },
       });
       if (userWithSameUsername) {
         return NextResponse.json(
@@ -140,9 +154,9 @@ export async function PUT(request: NextRequest) {
 
     // Preparar datos de actualización
     const updateData: Record<string, string | undefined> = {};
-    if (username) updateData.username = username.toUpperCase();
+    if (normalizedUsername) updateData.username = normalizedUsername;
     if (password) updateData.password = password; // TODO: Hashear
-    if (fullName) updateData.fullName = fullName.toUpperCase();
+    if (normalizedFullName) updateData.fullName = normalizedFullName;
     if (role) updateData.role = role;
     if (email !== undefined) updateData.email = email;
     if (status) updateData.status = status;
@@ -161,7 +175,13 @@ export async function PUT(request: NextRequest) {
       status: updatedUser.status,
       updatedAt: updatedUser.updatedAt,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      return NextResponse.json(
+        { error: "Ya existe otro usuario con ese nombre de usuario" },
+        { status: 409 }
+      );
+    }
     console.error("Error updating system user:", error);
     return NextResponse.json(
       { error: "Error al actualizar usuario" },
