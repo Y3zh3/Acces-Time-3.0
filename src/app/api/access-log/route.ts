@@ -2,12 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 /**
+ * Obtiene la fecha/hora actual en la zona horaria de Perú (UTC-5)
+ */
+function getPeruTime(): Date {
+  const now = new Date();
+  // Perú está en UTC-5 (sin horario de verano)
+  const peruTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+  return peruTime;
+}
+
+/**
  * Verifica si el acceso está dentro del horario laboral
  */
 function isWithinWorkingHours(workStart: string | null, workEnd: string | null): boolean {
   if (!workStart || !workEnd) return true; // Si no hay horario configurado, se permite
 
-  const now = new Date();
+  const now = getPeruTime();
   const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   
   return currentTime >= workStart && currentTime <= workEnd;
@@ -22,7 +32,7 @@ function isWithinEmployeeEntryWindow(workStart: string | null, workEnd: string |
     return { allowed: true, windowStart: 'N/A', windowEnd: 'N/A' };
   }
 
-  const now = new Date();
+  const now = getPeruTime();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   
   // Parsear hora de entrada configurada manualmente
@@ -72,7 +82,7 @@ function isWithinEmployeeExitWindow(workEnd: string | null): { allowed: boolean;
     return { allowed: true, windowStart: 'N/A', windowEnd: 'N/A' };
   }
 
-  const now = new Date();
+  const now = getPeruTime();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   
   // Parsear hora de salida configurada manualmente
@@ -124,7 +134,7 @@ function isWithinProviderEntryWindow(entryDateTime: Date | null): { allowed: boo
     return { allowed: true, windowStart: 'N/A', windowEnd: 'N/A' };
   }
 
-  const now = new Date();
+  const now = getPeruTime();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   
   // Extraer hora de la fecha programada
@@ -158,7 +168,7 @@ function isWithinProviderEntryWindow(entryDateTime: Date | null): { allowed: boo
 function isWithinEntryWindow(workStart: string | null): boolean {
   if (!workStart) return true; // Si no hay horario configurado, se permite
 
-  const now = new Date();
+  const now = getPeruTime();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   
   // Parsear hora de inicio
@@ -191,7 +201,7 @@ function calculateEntryWindowEnd(workStart: string | null): string {
  * Busca un pase temporal válido para un DNI en la fecha/hora actual
  */
 async function findValidTemporaryPass(dni: string): Promise<any | null> {
-  const now = new Date();
+  const now = getPeruTime();
   
   try {
     const pass = await prisma.temporaryPass.findFirst({
@@ -225,7 +235,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const now = new Date();
+    const now = getPeruTime();
     let accessStatus = 'Aprobado';
     let accessType: 'success' | 'warning' | 'critical' = 'success';
     let workStart: string | null = null;
