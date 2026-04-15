@@ -152,9 +152,14 @@ function isWithinProviderEntryWindow(entryDateTime: Date | null): { allowed: boo
   const { hours, minutes } = getPeruTimeComponents();
   const currentMinutes = hours * 60 + minutes;
   
-  // Extraer hora de la fecha programada
-  const programmedHour = entryDateTime.getHours();
-  const programmedMinute = entryDateTime.getMinutes();
+  // Extraer hora de la fecha programada en zona horaria de Perú (no UTC)
+  const peruScheduledTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Lima',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(entryDateTime);
+  const [programmedHour, programmedMinute] = peruScheduledTime.split(':').map(Number);
   const programmedMinutes = programmedHour * 60 + programmedMinute;
   
   // Calcular ventana: desde 60 minutos antes hasta 120 minutos después (MÁS FLEXIBLE)
@@ -332,7 +337,7 @@ export async function POST(request: NextRequest) {
             } else {
               // ACCESO DENEGADO: Fuera de ventana de entrada sin pase temporal
               const programmedTime = transport.entryDateTime 
-                ? new Date(transport.entryDateTime).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
+                ? new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(transport.entryDateTime))
                 : 'N/A';
               console.log(`🚫 Acceso denegado: ${fullName} intentó ingresar fuera de la ventana permitida (${entryValidation.windowStart} - ${entryValidation.windowEnd})`);
               return NextResponse.json(
@@ -370,7 +375,7 @@ export async function POST(request: NextRequest) {
             } else {
               // ACCESO DENEGADO: Fuera de ventana de entrada sin pase temporal
               const programmedTime = provider.entryDateTime 
-                ? new Date(provider.entryDateTime).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
+                ? new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(provider.entryDateTime))
                 : 'N/A';
               console.log(`🚫 Acceso denegado: ${fullName} intentó ingresar fuera de la ventana permitida (${entryValidation.windowStart} - ${entryValidation.windowEnd})`);
               return NextResponse.json(
