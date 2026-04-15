@@ -193,7 +193,7 @@ export default function PersonalManagement() {
       ['INFORME DE ACCESOS - GESTIÓN DE PERSONAL'],
       [''],
       ['Fecha generación:', fechaStr],
-      ['Generado:', new Date().toLocaleString('es-AR')],
+      ['Generado:', new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' })],
       [''],
       ['═══════════════════════════════════════════════════════'],
       ['RESUMEN HISTÓRICO'],
@@ -219,14 +219,16 @@ export default function PersonalManagement() {
       'CARGO': getCargoLabel(log.employee?.position) || log.employee?.role || log.role,
       'ÁREA': log.employee?.department || '-',
       'ESTADO': log.status.toUpperCase(),
-      'HORA ENTRADA': new Date(log.entryTime).toLocaleString('es-AR', {
+      'HORA ENTRADA': new Date(log.entryTime).toLocaleString('es-PE', {
+        timeZone: 'America/Lima',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       }),
-      'HORA SALIDA': log.exitTime ? new Date(log.exitTime).toLocaleString('es-AR', {
+      'HORA SALIDA': log.exitTime ? new Date(log.exitTime).toLocaleString('es-PE', {
+        timeZone: 'America/Lima',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -398,7 +400,8 @@ export default function PersonalManagement() {
                 <TableCell className="font-mono">
                   <div className="flex items-center gap-2">
                     <ArrowDownCircle className="h-4 w-4 text-green-500" />
-                    {new Date(log.entryTime).toLocaleString('es-AR', {
+                    {new Date(log.entryTime).toLocaleString('es-PE', {
+                      timeZone: 'America/Lima',
                       day: '2-digit',
                       month: '2-digit',
                       hour: '2-digit',
@@ -410,7 +413,8 @@ export default function PersonalManagement() {
                   {log.exitTime ? (
                     <div className="flex items-center gap-2">
                       <ArrowUpCircle className="h-4 w-4 text-orange-500" />
-                      {new Date(log.exitTime).toLocaleString('es-AR', {
+                      {new Date(log.exitTime).toLocaleString('es-PE', {
+                        timeZone: 'America/Lima',
                         day: '2-digit',
                         month: '2-digit',
                         hour: '2-digit',

@@ -90,7 +90,8 @@ export function HistorialAccesosDialog({
 
   const exportarExcel = () => {
     const datosExport = logs.map(log => ({
-      'Fecha y Hora': new Date(log.timestamp).toLocaleString('es-AR', {
+      'Fecha y Hora': new Date(log.timestamp).toLocaleString('es-PE', {
+        timeZone: 'America/Lima',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -212,7 +213,8 @@ export function HistorialAccesosDialog({
                   {logs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="font-medium">
-                        {new Date(log.timestamp).toLocaleString('es-AR', {
+                        {new Date(log.timestamp).toLocaleString('es-PE', {
+                          timeZone: 'America/Lima',
                           day: '2-digit',
                           month: '2-digit',
                           year: 'numeric',
