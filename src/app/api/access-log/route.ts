@@ -66,12 +66,53 @@ function isWithinEmployeeEntryWindow(workStart: string | null, workEnd: string |
 
 /**
  * Verifica si la salida está dentro de la ventana permitida (Personal interno)
- * FLEXIBLE: Siempre permite salida (no hay horario fijo de salida)
- * Las personas pueden quedarse 2, 3, 4 horas o más
+ * FLEXIBLE: Valida hora de salida configurada manualmente con ±3 horas de tolerancia
+ * Permite flexibilidad porque pueden quedarse más o menos tiempo
  */
 function isWithinEmployeeExitWindow(workEnd: string | null): { allowed: boolean; windowStart: string; windowEnd: string } {
-  // SIEMPRE permite salida - no hay restricción horaria para salidas
-  return { allowed: true, windowStart: '00:00', windowEnd: '23:59' };
+  if (!workEnd) {
+    return { allowed: true, windowStart: 'N/A', windowEnd: 'N/A' };
+  }
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  
+  // Parsear hora de salida configurada manualmente
+  const [endHour, endMinute] = workEnd.split(':').map(Number);
+  const endMinutes = endHour * 60 + endMinute;
+  
+  // Ventana de salida: ±3 horas de la hora de salida configurada
+  let windowStartMinutes = endMinutes - 180; // 3 horas antes
+  let windowEndMinutes = endMinutes + 180;   // 3 horas después
+  
+  // Normalizar valores negativos o que exceden 24h
+  if (windowStartMinutes < 0) {
+    windowStartMinutes += 1440;
+  }
+  if (windowEndMinutes >= 1440) {
+    windowEndMinutes = windowEndMinutes % 1440;
+  }
+  
+  // Verificar si está dentro de la ventana
+  let allowed = false;
+  if (windowStartMinutes > windowEndMinutes) {
+    // La ventana cruza medianoche
+    allowed = currentMinutes >= windowStartMinutes || currentMinutes <= windowEndMinutes;
+  } else {
+    // Ventana normal
+    allowed = currentMinutes >= windowStartMinutes && currentMinutes <= windowEndMinutes;
+  }
+  
+  // Calcular horas para mostrar
+  const wsHour = Math.floor(windowStartMinutes / 60);
+  const wsMinute = windowStartMinutes % 60;
+  const weHour = Math.floor(windowEndMinutes / 60);
+  const weMinute = windowEndMinutes % 60;
+  
+  const windowStart = `${wsHour.toString().padStart(2, '0')}:${wsMinute.toString().padStart(2, '0')}`;
+  const windowEnd = `${weHour.toString().padStart(2, '0')}:${weMinute.toString().padStart(2, '0')}`;
+  
+  return { allowed, windowStart, windowEnd };
 }
 
 /**
