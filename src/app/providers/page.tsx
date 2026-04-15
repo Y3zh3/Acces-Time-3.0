@@ -1251,6 +1251,8 @@ export default function ProvidersPage() {
                 <Label htmlFor="passDni">DNI * (8 dígitos)</Label>
                 <Input
                   id="passDni"
+                  type="tel"
+                  inputMode="numeric"
                   value={passFormData.dni}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, '').slice(0, 8);
@@ -1389,6 +1391,8 @@ export default function ProvidersPage() {
                     <Label htmlFor="passPhone">Teléfono (9 dígitos)</Label>
                     <Input
                       id="passPhone"
+                      type="tel"
+                      inputMode="numeric"
                       value={passFormData.phone}
                       onChange={(e) => {
                         const value = e.target.value.replace(/\D/g, '').slice(0, 9);
