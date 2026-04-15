@@ -797,13 +797,33 @@ export default function ProvidersPage() {
       }
     }
 
+    // VALIDACIÓN: Foto obligatoria al crear pases nuevos
+    if (!isEditMode && !passPhoto) {
+      toast({
+        variant: "destructive",
+        title: "Foto requerida",
+        description: "Debes subir una foto para habilitar el acceso biométrico"
+      })
+      return
+    }
+
     // Validar que si hay foto nueva, tenga descriptor
     if (passPhoto && !capturedDescriptor && !isEditMode) {
       console.error('❌ Foto sin descriptor detectado')
       toast({
         variant: "destructive",
         title: "Error en la foto",
-        description: "La foto no tiene un rostro válido detectado. Sube una nueva foto."
+        description: "No se detectó un rostro válido. Sube una foto con el rostro visible de frente."
+      })
+      return
+    }
+
+    // Validar modelos biométricos cargados
+    if (!isEditMode && !modelsReady) {
+      toast({
+        variant: "destructive",
+        title: "Sistema biométrico cargando",
+        description: "Espera unos segundos mientras se cargan los modelos de reconocimiento facial"
       })
       return
     }
@@ -889,15 +909,21 @@ export default function ProvidersPage() {
         setEditingPersonId(null)
         loadProviders()
       } else {
+        console.error('❌ Error del servidor:', data)
         toast({
           variant: "destructive",
           title: data.error || (isEditMode ? "Error al actualizar" : "Error al registrar"),
+          description: data.error === 'Ya existe personal con ese DNI' 
+            ? 'El DNI ya está registrado en el sistema' 
+            : 'Verifica los datos e intenta nuevamente'
         })
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Error de conexión completo:', error)
       toast({
         variant: "destructive",
         title: "Error de conexión",
+        description: error.message || "No se pudo conectar con el servidor. Verifica tu conexión a internet."
       })
     } finally {
       setIsSaving(false)
@@ -1339,7 +1365,7 @@ export default function ProvidersPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="passPhoto">Foto para Biometría (Opcional)</Label>
+                <Label htmlFor="passPhoto">Foto para Biometría *</Label>
                 <Input
                   id="passPhoto"
                   type="file"
@@ -1357,7 +1383,7 @@ export default function ProvidersPage() {
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Sube una foto frontal para habilitar validación biométrica
+                  Foto frontal obligatoria para acceso biométrico. Max 5MB
                 </p>
               </div>
 
