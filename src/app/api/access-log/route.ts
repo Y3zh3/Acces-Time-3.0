@@ -15,88 +15,44 @@ function isWithinWorkingHours(workStart: string | null, workEnd: string | null):
 
 /**
  * Verifica si la entrada está dentro de la ventana permitida (Personal interno)
- * MODO FLEXIBLE: Si estás DENTRO del horario exacto → acceso automático
- * Si estás FUERA → permite desde 60 min ANTES hasta 60 min DESPUÉS del horario
- * Maneja correctamente horarios nocturnos y cruces de medianoche
+ * FLEXIBLE: Solo valida hora de ENTRADA con tolerancia de ±2 horas
+ * No importa la hora de salida (pueden quedarse tiempo variable)
  */
 function isWithinEmployeeEntryWindow(workStart: string | null, workEnd: string | null): { allowed: boolean; windowStart: string; windowEnd: string } {
-  if (!workStart || !workEnd) {
+  if (!workStart) {
     return { allowed: true, windowStart: 'N/A', windowEnd: 'N/A' };
   }
 
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   
-  // Parsear hora de inicio y fin
+  // Parsear SOLO hora de inicio (la de salida no importa)
   const [startHour, startMinute] = workStart.split(':').map(Number);
-  let startMinutes = startHour * 60 + startMinute;
+  const startMinutes = startHour * 60 + startMinute;
   
-  const [endHour, endMinute] = workEnd.split(':').map(Number);
-  let endMinutes = endHour * 60 + endMinute;
+  // Ventana de entrada: ±2 horas de la hora de inicio configurada
+  let windowStartMinutes = startMinutes - 120; // 2 horas antes
+  let windowEndMinutes = startMinutes + 120;   // 2 horas después
   
-  // Si hora de fin es menor que hora de inicio, es un horario nocturno (cruza medianoche)
-  const isNightShift = endMinutes <= startMinutes;
-  
-  if (isNightShift) {
-    endMinutes += 1440; // Agregar 24 horas (1440 minutos) a la hora de fin
-    let adjustedCurrentMinutes = currentMinutes;
-    if (currentMinutes < startMinutes) {
-      adjustedCurrentMinutes += 1440;
-    }
-    
-    // PRIORIDAD 1: Verificar si está DENTRO del horario exacto (sin tolerancias)
-    const isInExactSchedule = adjustedCurrentMinutes >= startMinutes && adjustedCurrentMinutes <= endMinutes;
-    
-    // PRIORIDAD 2: Aplicar ventana de tolerancia extendida
-    const windowStartMinutes = startMinutes - 60;
-    const windowEndMinutes = endMinutes + 60;
-    const isInToleranceWindow = adjustedCurrentMinutes >= windowStartMinutes && adjustedCurrentMinutes <= windowEndMinutes;
-    
-    // Permitir si está en horario exacto O en ventana de tolerancia
-    const allowed = isInExactSchedule || isInToleranceWindow;
-    
-    // Calcular horas para mostrar (normalizadas a 24h)
-    const wsHour = Math.floor((windowStartMinutes + 1440) % 1440 / 60);
-    const wsMinute = (windowStartMinutes + 1440) % 60;
-    const weHour = Math.floor(windowEndMinutes % 1440 / 60);
-    const weMinute = windowEndMinutes % 60;
-    
-    const windowStart = `${wsHour.toString().padStart(2, '0')}:${wsMinute.toString().padStart(2, '0')}`;
-    const windowEnd = `${weHour.toString().padStart(2, '0')}:${weMinute.toString().padStart(2, '0')}`;
-    
-    return { allowed, windowStart, windowEnd };
-  }
-  
-  // Horario normal (no cruza medianoche)
-  // PRIORIDAD 1: Verificar si está DENTRO del horario exacto (sin tolerancias)
-  const isInExactSchedule = currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-  
-  // PRIORIDAD 2: Aplicar ventana de tolerancia extendida
-  let windowStartMinutes = startMinutes - 60;
-  let windowEndMinutes = endMinutes + 60;
-  
-  // Manejar minutos negativos (antes de medianoche)
+  // Normalizar valores negativos o que exceden 24h
   if (windowStartMinutes < 0) {
-    windowStartMinutes += 1440; // Normalizar a 24h
+    windowStartMinutes += 1440;
   }
   if (windowEndMinutes >= 1440) {
-    windowEndMinutes = windowEndMinutes % 1440; // Normalizar a 24h
+    windowEndMinutes = windowEndMinutes % 1440;
   }
   
-  // Verificar si está dentro de la ventana de tolerancia
-  let isInToleranceWindow = false;
+  // Verificar si está dentro de la ventana
+  let allowed = false;
   if (windowStartMinutes > windowEndMinutes) {
     // La ventana cruza medianoche
-    isInToleranceWindow = currentMinutes >= windowStartMinutes || currentMinutes <= windowEndMinutes;
+    allowed = currentMinutes >= windowStartMinutes || currentMinutes <= windowEndMinutes;
   } else {
     // Ventana normal
-    isInToleranceWindow = currentMinutes >= windowStartMinutes && currentMinutes <= windowEndMinutes;
+    allowed = currentMinutes >= windowStartMinutes && currentMinutes <= windowEndMinutes;
   }
   
-  // Permitir si está en horario exacto O en ventana de tolerancia
-  const allowed = isInExactSchedule || isInToleranceWindow;
-  
-  // Calcular horas para retornar
+  // Calcular horas para mostrar
   const wsHour = Math.floor(windowStartMinutes / 60);
   const wsMinute = windowStartMinutes % 60;
   const weHour = Math.floor(windowEndMinutes / 60);
@@ -110,53 +66,12 @@ function isWithinEmployeeEntryWindow(workStart: string | null, workEnd: string |
 
 /**
  * Verifica si la salida está dentro de la ventana permitida (Personal interno)
- * Permite salir desde 60 minutos ANTES de la hora programada hasta 120 minutos DESPUÉS (MÁS FLEXIBLE)
- * Maneja correctamente horarios nocturnos
+ * FLEXIBLE: Siempre permite salida (no hay horario fijo de salida)
+ * Las personas pueden quedarse 2, 3, 4 horas o más
  */
 function isWithinEmployeeExitWindow(workEnd: string | null): { allowed: boolean; windowStart: string; windowEnd: string } {
-  if (!workEnd) {
-    return { allowed: true, windowStart: 'N/A', windowEnd: 'N/A' };
-  }
-
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  
-  // Parsear hora de salida
-  const [endHour, endMinute] = workEnd.split(':').map(Number);
-  const endMinutes = endHour * 60 + endMinute;
-  
-  // Calcular ventana: desde 60 minutos antes hasta 120 minutos después (MÁS FLEXIBLE)
-  let windowStartMinutes = endMinutes - 60;
-  let windowEndMinutes = endMinutes + 120;
-  
-  // Manejar minutos negativos (antes de medianoche)
-  if (windowStartMinutes < 0) {
-    windowStartMinutes += 1440; // Normalizar a 24h
-  }
-  if (windowEndMinutes >= 1440) {
-    windowEndMinutes = windowEndMinutes % 1440; // Normalizar a 24h
-  }
-  
-  // Verificar si está dentro de la ventana
-  let allowed = false;
-  if (windowStartMinutes > windowEndMinutes) {
-    // La ventana cruza medianoche
-    allowed = currentMinutes >= windowStartMinutes || currentMinutes <= windowEndMinutes;
-  } else {
-    // Ventana normal
-    allowed = currentMinutes >= windowStartMinutes && currentMinutes <= windowEndMinutes;
-  }
-  
-  // Calcular horas para retornar
-  const wsHour = Math.floor(windowStartMinutes / 60);
-  const wsMinute = windowStartMinutes % 60;
-  const weHour = Math.floor(windowEndMinutes / 60);
-  const weMinute = windowEndMinutes % 60;
-  
-  const windowStart = `${wsHour.toString().padStart(2, '0')}:${wsMinute.toString().padStart(2, '0')}`;
-  const windowEnd = `${weHour.toString().padStart(2, '0')}:${weMinute.toString().padStart(2, '0')}`;
-  
-  return { allowed, windowStart, windowEnd };
+  // SIEMPRE permite salida - no hay restricción horaria para salidas
+  return { allowed: true, windowStart: '00:00', windowEnd: '23:59' };
 }
 
 /**
