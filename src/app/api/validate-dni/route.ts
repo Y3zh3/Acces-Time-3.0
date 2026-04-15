@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+/**
+ * POST /api/validate-dni
+ * Busca una persona por DNI en todas las tablas (empleados, transporte, proveedores)
+ * NO registra acceso automáticamente - solo retorna información
+ * La UI debe llamar a /api/access-log para registrar entrada/salida
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -13,7 +19,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const searchDni = dni.trim().toUpperCase();
+    const searchDni = dni.trim();
 
     // Buscar en empleados
     const employee = await prisma.employee.findUnique({
@@ -26,28 +32,28 @@ export async function POST(request: NextRequest) {
         department: true,
         photoPath: true,
         status: true,
+        position: true,
       },
     });
 
     if (employee) {
-      // Registrar acceso
-      await prisma.accessLog.create({
-        data: {
-          userName: employee.fullName,
-          userDni: employee.dni,
-          role: employee.role,
-          status: 'Aprobado',
-          zone: 'Portería',
-          type: 'success',
-          employeeId: employee.id,
-        },
-      });
+      if (employee.status === 'Inactivo') {
+        return NextResponse.json({
+          authorized: false,
+          reason: 'Personal inactivo en el sistema',
+          name: employee.fullName,
+          dni: employee.dni,
+        });
+      }
 
       return NextResponse.json({
-        found: true,
-        type: 'employee',
-        data: employee,
+        authorized: true,
+        name: employee.fullName,
+        role: employee.position || employee.role,
         category: 'Personal',
+        dni: employee.dni,
+        type: 'employee',
+        employeeId: employee.id,
       });
     }
 
@@ -66,42 +72,65 @@ export async function POST(request: NextRequest) {
     });
 
     if (transport) {
-      // Registrar acceso
-      await prisma.accessLog.create({
-        data: {
-          userName: transport.fullName,
-          userDni: transport.dni,
-          role: 'Proveedores',
-          status: 'Aprobado',
-          zone: 'Muelle',
-          type: 'success',
-          transportId: transport.id,
-        },
-      });
+      if (transport.status === 'Inactivo') {
+        return NextResponse.json({
+          authorized: false,
+          reason: 'Personal de transporte inactivo',
+          name: transport.fullName,
+          dni: transport.dni,
+        });
+      }
 
       return NextResponse.json({
-        found: true,
-        type: 'transport',
-        data: { ...transport, role: 'Proveedores' },
+        authorized: true,
+        name: transport.fullName,
+        role: `${transport.company} - ${transport.vehicle}`,
         category: 'Transporte',
+        dni: transport.dni,
+        type: 'transport',
+        transportId: transport.id,
       });
     }
 
-    // No encontrado - registrar intento
-    await prisma.accessLog.create({
-      data: {
-        userName: `DNI: ${searchDni}`,
-        userDni: searchDni,
-        role: 'N/A',
-        status: 'Denegado',
-        zone: 'Punto Control',
-        type: 'critical',
+    // Buscar en personal de proveedores
+    const provider = await prisma.providerPersonnel.findUnique({
+      where: { dni: searchDni },
+      select: {
+        id: true,
+        fullName: true,
+        dni: true,
+        company: true,
+        position: true,
+        phone: true,
+        status: true,
       },
     });
 
+    if (provider) {
+      if (provider.status === 'Inactivo') {
+        return NextResponse.json({
+          authorized: false,
+          reason: 'Personal de proveedor inactivo',
+          name: provider.fullName,
+          dni: provider.dni,
+        });
+      }
+
+      return NextResponse.json({
+        authorized: true,
+        name: provider.fullName,
+        role: `${provider.company} - ${provider.position}`,
+        category: 'Proveedor',
+        dni: provider.dni,
+        type: 'provider',
+        providerId: provider.id,
+      });
+    }
+
+    // No encontrado
     return NextResponse.json({
-      found: false,
-      message: 'DNI no registrado',
+      authorized: false,
+      reason: 'DNI no registrado en el sistema',
     });
   } catch (error: any) {
     console.error('Error en validación de DNI:', error);

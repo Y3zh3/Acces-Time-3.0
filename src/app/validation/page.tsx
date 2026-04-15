@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   ShieldCheck, 
   ShieldAlert, 
@@ -12,6 +14,8 @@ import {
   LogIn,
   LogOut,
   Clock,
+  CreditCard,
+  AlertTriangle,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
@@ -25,6 +29,9 @@ export default function AccessValidation() {
   const [isCameraActive, setIsCameraActive] = useState(false)
   const [modelsLoaded, setModelsLoaded] = useState(false)
   const [isRecordingAccess, setIsRecordingAccess] = useState(false)
+  const [validationMode, setValidationMode] = useState<'facial' | 'manual'>('facial')
+  const [manualDni, setManualDni] = useState('')
+  const [cameraFailures, setCameraFailures] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { toast } = useToast()
@@ -54,9 +61,23 @@ export default function AccessValidation() {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 640, height: 480 } });
           if (videoRef.current) videoRef.current.srcObject = stream;
+          setCameraFailures(0); // Reset si la cámara funciona
         } catch (error) {
           setIsCameraActive(false);
-          toast({ variant: "destructive", title: "Cámara bloqueada" });
+          const newFailures = cameraFailures + 1;
+          setCameraFailures(newFailures);
+          
+          // Detectar falla de cámara y sugerir modo manual
+          if (newFailures >= 2) {
+            toast({ 
+              variant: "destructive", 
+              title: "⚠️ Cámara no disponible",
+              description: "Se activó el modo manual para ingresar por DNI"
+            });
+            setValidationMode('manual');
+          } else {
+            toast({ variant: "destructive", title: "Cámara bloqueada" });
+          }
         }
       }
     };
@@ -69,6 +90,62 @@ export default function AccessValidation() {
   // Log access is now handled by the API endpoints
   const logAccess = (userName: string, role: string, zone: string, action: string, category: string, type: "success" | "critical" = "success") => {
     // No-op: API endpoints handle logging automatically
+  }
+
+  const handleManualValidation = async () => {
+    if (!manualDni || manualDni.length !== 8) {
+      toast({
+        variant: "destructive",
+        title: "DNI inválido",
+        description: "Ingresa un DNI de 8 dígitos"
+      });
+      return;
+    }
+
+    setIsValidating(true);
+    setResult(null);
+
+    try {
+      const response = await fetch('/api/validate-dni', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dni: manualDni })
+      });
+
+      const data = await response.json();
+
+      if (data.authorized) {
+        setResult({
+          success: true,
+          name: data.name,
+          role: data.role,
+          category: data.category,
+          dni: data.dni
+        });
+        toast({
+          title: "✅ Personal encontrado",
+          description: `${data.name} - ${data.category}`
+        });
+      } else {
+        setResult({
+          success: false,
+          reason: data.reason || 'DNI no registrado'
+        });
+        toast({
+          variant: "destructive",
+          title: "Acceso denegado",
+          description: data.reason
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error de conexión",
+        description: "No se pudo validar el DNI"
+      });
+    } finally {
+      setIsValidating(false);
+    }
   }
 
   const handleBiometricFace = async () => {
@@ -149,6 +226,7 @@ export default function AccessValidation() {
         setTimeout(() => {
           setResult(null);
           setIsCameraActive(false);
+          setManualDni('');
         }, 2000);
       } else {
         toast({
@@ -177,37 +255,104 @@ export default function AccessValidation() {
       <div className="grid gap-6 md:grid-cols-2 items-start">
         <Card className="shadow-lg border-none bg-white rounded-2xl">
           <CardHeader className="pb-4">
-            <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Terminal de Control Biométrico</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Terminal de Control de Acceso</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="relative aspect-square bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center">
-              <video ref={videoRef} className={"w-full h-full object-cover scale-x-[-1] " + (isCameraActive ? "block" : "hidden")} autoPlay muted playsInline />
-              <canvas ref={canvasRef} className="hidden" />
-              {!isCameraActive && (
-                <Button onClick={() => setIsCameraActive(true)} variant="secondary" className="bg-white text-primary">
-                  <ScanFace className="mr-2 h-5 w-5" />
-                  Activar Sensor
+            <Tabs value={validationMode} onValueChange={(v) => setValidationMode(v as 'facial' | 'manual')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="facial" className="text-xs">
+                  <ScanFace className="h-4 w-4 mr-2" />
+                  Facial
+                </TabsTrigger>
+                <TabsTrigger value="manual" className="text-xs">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Manual DNI
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="facial" className="space-y-4 mt-4">
+                <div className="relative aspect-square bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center">
+                  <video ref={videoRef} className={"w-full h-full object-cover scale-x-[-1] " + (isCameraActive ? "block" : "hidden")} autoPlay muted playsInline />
+                  <canvas ref={canvasRef} className="hidden" />
+                  {!isCameraActive && (
+                    <Button onClick={() => setIsCameraActive(true)} variant="secondary" className="bg-white text-primary">
+                      <ScanFace className="mr-2 h-5 w-5" />
+                      Activar Sensor
+                    </Button>
+                  )}
+                  {isCameraActive && !isValidating && <div className="absolute top-1/2 left-0 w-full h-[1px] bg-primary/40 animate-scan" />}
+                </div>
+                <Button 
+                  className="w-full h-12 font-bold bg-primary" 
+                  onClick={handleBiometricFace} 
+                  disabled={isValidating || !isCameraActive || !modelsLoaded}
+                >
+                  {isValidating ? (
+                    <>
+                      <Loader2 className="mr-2 animate-spin" />
+                      Validando...
+                    </>
+                  ) : (
+                    <>
+                      <ScanFace className="mr-2 h-5 w-5" />
+                      Escanear Rostro
+                    </>
+                  )}
                 </Button>
-              )}
-              {isCameraActive && !isValidating && <div className="absolute top-1/2 left-0 w-full h-[1px] bg-primary/40 animate-scan" />}
-            </div>
-            <Button 
-              className="w-full h-12 font-bold bg-primary" 
-              onClick={handleBiometricFace} 
-              disabled={isValidating || !isCameraActive || !modelsLoaded}
-            >
-              {isValidating ? (
-                <>
-                  <Loader2 className="mr-2 animate-spin" />
-                  Validando...
-                </>
-              ) : (
-                <>
-                  <ScanFace className="mr-2 h-5 w-5" />
-                  Escanear Rostro
-                </>
-              )}
-            </Button>
+              </TabsContent>
+              
+              <TabsContent value="manual" className="space-y-4 mt-4">
+                <div className="relative aspect-square bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl overflow-hidden flex flex-col items-center justify-center p-8 border-2 border-blue-200">
+                  {cameraFailures >= 2 && (
+                    <div className="absolute top-4 left-4 right-4 bg-orange-100 border border-orange-300 rounded-lg p-3 flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-orange-800 font-medium">Cámara no disponible - Modo manual activado</p>
+                    </div>
+                  )}
+                  <CreditCard className="h-16 w-16 text-blue-400 mb-4" />
+                  <p className="text-sm font-bold text-blue-900 uppercase tracking-wide mb-6">Ingreso Manual por DNI</p>
+                  <div className="w-full space-y-3">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="Ingresa DNI (8 dígitos)"
+                      value={manualDni}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                        setManualDni(value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && manualDni.length === 8) {
+                          handleManualValidation();
+                        }
+                      }}
+                      className="text-center text-lg font-mono tracking-wider h-12"
+                      maxLength={8}
+                    />
+                    <p className="text-xs text-center text-blue-600 font-medium">
+                      {manualDni.length}/8 dígitos
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  className="w-full h-12 font-bold bg-blue-600 hover:bg-blue-700" 
+                  onClick={handleManualValidation}
+                  disabled={isValidating || manualDni.length !== 8}
+                >
+                  {isValidating ? (
+                    <>
+                      <Loader2 className="mr-2 animate-spin" />
+                      Validando...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="mr-2 h-5 w-5" />
+                      Buscar por DNI
+                    </>
+                  )}
+                </Button>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
